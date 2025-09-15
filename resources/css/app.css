@@ -1,0 +1,28 @@
+@import 'tailwindcss/base';
+@import 'tailwindcss/components';
+@import 'tailwindcss/utilities';
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
+/* Custom components */
+@layer components {
+    .btn-primary {
+        @apply px-5 py-3 rounded-xl bg-cdf-deep text-white font-semibold hover:brightness-110 transition-all duration-200;
+    }
+    
+    .btn-secondary {
+        @apply px-5 py-3 rounded-xl ring-1 ring-cdf-slate200 hover:bg-white transition-all duration-200;
+    }
+    
+    .btn-accent {
+        @apply px-5 py-3 rounded-xl bg-cdf-amber text-cdf-ink font-semibold hover:brightness-95 transition-all duration-200;
+    }
+    
+    .card {
+        @apply rounded-3xl bg-white p-6 shadow ring-1 ring-cdf-slate200;
+    }
+    
+    .input-field {
+        @apply w-full px-4 py-3 rounded-xl border border-cdf-slate200 focus:ring-2 focus:ring-cdf-teal focus:border-transparent transition-all duration-200;
+    }
+}
