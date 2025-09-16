@@ -38,8 +38,13 @@
             </div>
         </div>
 
+        <!-- Loading State -->
+        <div v-if="loading" class="flex justify-center py-12">
+            <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-cdf-teal"></div>
+        </div>
+
         <!-- Courses List -->
-        <div class="space-y-6">
+        <div v-else class="space-y-6">
             <!-- Course Item -->
             <div 
                 v-for="course in filteredCourses" 
@@ -157,7 +162,7 @@
         </div>
 
         <!-- Empty State -->
-        <div v-if="filteredCourses.length === 0" class="text-center py-12">
+        <div v-if="!loading && courses.length === 0" class="text-center py-12">
             <div class="w-24 h-24 bg-cdf-slate200 rounded-2xl flex items-center justify-center mx-auto mb-4">
                 <svg class="w-12 h-12 text-cdf-slate700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
@@ -173,12 +178,14 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import AppLayout from '@/components/Layout/AppLayout.vue';
+import api from '@/api';
 
 const router = useRouter();
 const activeFilter = ref('all');
+const loading = ref(false);
 
 const filters = [
     { key: 'all', label: 'Tutti' },
@@ -187,75 +194,38 @@ const filters = [
     { key: 'not-started', label: 'Non Iniziati' }
 ];
 
-// Sample courses data
-const courses = [
-    {
-        id: 1,
-        title: 'Cybersecurity Base',
-        description: 'Fondamenti di sicurezza informatica per principianti. Impara le basi della protezione dei dati e dei sistemi.',
-        status: 'active',
-        progress: 75,
-        duration: '3 ore',
-        modules: 5,
-        startedAt: '15 Gen 2024',
-        modulesList: [
-            { title: 'Introduzione', completed: true },
-            { title: 'Minacce Informatiche', completed: true },
-            { title: 'Protezione Dati', completed: true },
-            { title: 'Best Practices', completed: false },
-            { title: 'Test Finale', completed: false }
-        ]
-    },
-    {
-        id: 2,
-        title: 'GDPR per Incaricati',
-        description: 'Formazione completa sul GDPR per incaricati del trattamento. Normative, obblighi e best practices.',
-        status: 'active',
-        progress: 30,
-        duration: '4 ore',
-        modules: 6,
-        startedAt: '10 Gen 2024',
-        modulesList: [
-            { title: 'Panoramica GDPR', completed: true },
-            { title: 'Principi Fondamentali', completed: false },
-            { title: 'Diritti degli Interessati', completed: false },
-            { title: 'Obblighi del Titolare', completed: false },
-            { title: 'Sicurezza dei Dati', completed: false },
-            { title: 'Valutazione d\'Impatto', completed: false }
-        ]
-    },
-    {
-        id: 3,
-        title: 'NIS2 per Dipendenti',
-        description: 'Direttiva NIS2: obblighi e responsabilità per i dipendenti delle organizzazioni critiche.',
-        status: 'not-started',
-        progress: 0,
-        duration: '2 ore',
-        modules: 3,
-        startedAt: 'Non iniziato',
-        modulesList: [
-            { title: 'Introduzione NIS2', completed: false },
-            { title: 'Obblighi Organizzativi', completed: false },
-            { title: 'Responsabilità Individuali', completed: false }
-        ]
-    },
-    {
-        id: 4,
-        title: 'Privacy e Sicurezza Dati',
-        description: 'Corso completo su privacy e sicurezza dei dati personali secondo le normative vigenti.',
-        status: 'completed',
-        progress: 100,
-        duration: '2.5 ore',
-        modules: 4,
-        startedAt: '5 Dic 2023',
-        modulesList: [
-            { title: 'Normativa Privacy', completed: true },
-            { title: 'Gestione Consensi', completed: true },
-            { title: 'Sicurezza Informatica', completed: true },
-            { title: 'Test Finale', completed: true }
-        ]
+// Load user enrollments
+const courses = ref([]);
+
+const loadCourses = async () => {
+    loading.value = true;
+    try {
+        const response = await api.get('/v1/enrollments');
+        courses.value = response.data.data.map(enrollment => ({
+            id: enrollment.course.id,
+            title: enrollment.course.title,
+            description: enrollment.course.summary || enrollment.course.description,
+            status: getEnrollmentStatus(enrollment),
+            progress: enrollment.progress_percentage || 0,
+            duration: `${enrollment.course.duration_minutes} min`,
+            modules: enrollment.course.modules_count || 0,
+            startedAt: enrollment.started_at ? new Date(enrollment.started_at).toLocaleDateString('it-IT') : null,
+            enrollment: enrollment,
+            modulesList: [] // Will be loaded when needed
+        }));
+    } catch (error) {
+        console.error('Errore nel caricamento corsi:', error);
+        courses.value = [];
+    } finally {
+        loading.value = false;
     }
-];
+};
+
+const getEnrollmentStatus = (enrollment) => {
+    if (enrollment.status === 'completed') return 'completed';
+    if (enrollment.status === 'active' && enrollment.progress_percentage > 0) return 'active';
+    return 'not-started';
+};
 
 const filteredCourses = computed(() => {
     if (activeFilter.value === 'all') return courses;
@@ -303,4 +273,9 @@ const downloadMaterials = (course) => {
 const goToDashboard = () => {
     router.push('/dashboard');
 };
+
+// Load courses when component mounts
+onMounted(() => {
+    loadCourses();
+});
 </script>
