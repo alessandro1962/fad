@@ -241,6 +241,7 @@ const form = reactive({
   level: '',
   duration_minutes: 180,
   price_euros: 0,
+  currency: 'EUR',
   tags: [],
   video_preview_url: '',
   is_active: true,
@@ -262,6 +263,7 @@ watch(() => props.course, (newCourse) => {
     form.level = newCourse.level || ''
     form.duration_minutes = newCourse.duration_minutes || 180
     form.price_euros = newCourse.price_cents ? newCourse.price_cents / 100 : 0
+    form.currency = newCourse.currency || 'EUR'
     form.tags = newCourse.tags || []
     form.video_preview_url = newCourse.video_preview_url || ''
     form.is_active = newCourse.is_active ?? true
@@ -285,7 +287,8 @@ const saveCourse = async () => {
   try {
     const payload = {
       ...form,
-      price_cents: priceCents.value
+      price_cents: priceCents.value,
+      currency: form.currency
     }
 
     const response = props.isEdit
