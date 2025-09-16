@@ -215,6 +215,7 @@
 
 <script setup>
 import { ref, reactive, computed, watch } from 'vue'
+import api from '@/api'
 
 const props = defineProps({
   course: {
