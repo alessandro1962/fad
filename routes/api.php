@@ -98,6 +98,8 @@ Route::prefix('v1')->group(function () {
             Route::apiResource('users', App\Http\Controllers\Admin\UserController::class);
             Route::patch('users/{user}/toggle-admin', [App\Http\Controllers\Admin\UserController::class, 'toggleAdmin']);
             Route::get('users/statistics', [App\Http\Controllers\Admin\UserController::class, 'statistics']);
+            Route::post('users/import-csv', [App\Http\Controllers\Admin\UserController::class, 'importCsv']);
+            Route::get('users/download-template', [App\Http\Controllers\Admin\UserController::class, 'downloadTemplate']);
         });
     });
 });

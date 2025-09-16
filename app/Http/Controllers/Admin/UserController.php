@@ -7,6 +7,13 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Validation\Rule;
+use Maatwebsite\Excel\Facades\Excel;
+use Maatwebsite\Excel\Concerns\ToModel;
+use Maatwebsite\Excel\Concerns\WithHeadingRow;
+use Maatwebsite\Excel\Concerns\WithValidation;
+use Illuminate\Support\Facades\Hash;
+use App\Imports\UsersImport;
+use App\Exports\UsersImportTemplate;
 
 class UserController extends Controller
 {
@@ -198,5 +205,43 @@ class UserController extends Controller
         return response()->json([
             'data' => $stats,
         ]);
+    }
+
+    /**
+     * Import users from CSV file.
+     */
+    public function importCsv(Request $request): JsonResponse
+    {
+        $request->validate([
+            'file' => ['required', 'file', 'mimes:csv,txt', 'max:10240'], // 10MB max
+        ]);
+
+        try {
+            $import = new UsersImport();
+            Excel::import($import, $request->file('file'));
+
+            return response()->json([
+                'message' => 'Import completato con successo',
+                'data' => [
+                    'imported_count' => $import->getImportedCount(),
+                    'skipped_count' => $import->getSkippedCount(),
+                    'errors' => $import->getErrors(),
+                ],
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'message' => 'Errore durante l\'import',
+                'error' => $e->getMessage(),
+            ], 422);
+        }
+    }
+
+    /**
+     * Download CSV template for user import.
+     */
+    public function downloadTemplate(): \Symfony\Component\HttpFoundation\BinaryFileResponse
+    {
+        $template = new UsersImportTemplate();
+        return Excel::download($template, 'template_import_utenti.csv');
     }
 }

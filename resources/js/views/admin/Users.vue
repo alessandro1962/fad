@@ -20,12 +20,26 @@
               <p class="text-cdf-slate700 mt-1">Gestisci gli utenti della piattaforma</p>
             </div>
           </div>
-          <button
-            @click="showCreateModal = true"
-            class="bg-cdf-amber text-cdf-ink px-4 py-2 rounded-xl font-semibold hover:brightness-95 transition-all"
-          >
-            + Nuovo Utente
-          </button>
+          <div class="flex gap-3">
+            <button
+              @click="downloadTemplate"
+              class="bg-cdf-slate600 text-white px-4 py-2 rounded-xl font-semibold hover:bg-cdf-slate700 transition-all"
+            >
+              📥 Template CSV
+            </button>
+            <button
+              @click="showImportModal = true"
+              class="bg-cdf-teal text-white px-4 py-2 rounded-xl font-semibold hover:bg-cdf-deep transition-all"
+            >
+              📤 Importa CSV
+            </button>
+            <button
+              @click="showCreateModal = true"
+              class="bg-cdf-amber text-cdf-ink px-4 py-2 rounded-xl font-semibold hover:brightness-95 transition-all"
+            >
+              + Nuovo Utente
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -325,6 +339,111 @@
       @close="closeModal"
       @saved="onUserSaved"
     />
+
+    <!-- Import CSV Modal -->
+    <div v-if="showImportModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+      <div class="bg-white rounded-xl shadow-xl max-w-md w-full">
+        <!-- Header -->
+        <div class="flex items-center justify-between p-6 border-b border-cdf-slate200">
+          <h2 class="text-xl font-bold text-cdf-deep">Importa Utenti da CSV</h2>
+          <button
+            @click="showImportModal = false"
+            class="p-2 text-cdf-slate400 hover:text-cdf-slate600 hover:bg-cdf-slate200 rounded-lg transition-all"
+          >
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+            </svg>
+          </button>
+        </div>
+
+        <!-- Content -->
+        <div class="p-6">
+          <div class="mb-4">
+            <p class="text-cdf-slate600 mb-4">
+              Seleziona un file CSV per importare gli utenti. Assicurati che il file segua il formato del template.
+            </p>
+            
+            <div class="border-2 border-dashed border-cdf-slate300 rounded-lg p-6 text-center">
+              <input
+                ref="fileInput"
+                type="file"
+                accept=".csv,.txt"
+                @change="handleFileSelect"
+                class="hidden"
+              />
+              <div v-if="!selectedFile" @click="$refs.fileInput.click()" class="cursor-pointer">
+                <svg class="mx-auto h-12 w-12 text-cdf-slate400" stroke="currentColor" fill="none" viewBox="0 0 48 48">
+                  <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                </svg>
+                <p class="mt-2 text-sm text-cdf-slate600">
+                  <span class="font-medium text-cdf-teal">Clicca per selezionare</span> o trascina il file CSV qui
+                </p>
+                <p class="text-xs text-cdf-slate500">File supportati: CSV, TXT (max 10MB)</p>
+              </div>
+              <div v-else class="text-left">
+                <div class="flex items-center justify-between">
+                  <div>
+                    <p class="text-sm font-medium text-cdf-deep">{{ selectedFile.name }}</p>
+                    <p class="text-xs text-cdf-slate500">{{ formatFileSize(selectedFile.size) }}</p>
+                  </div>
+                  <button
+                    @click="selectedFile = null"
+                    class="text-red-600 hover:text-red-700"
+                  >
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Import Results -->
+          <div v-if="importResults" class="mb-4 p-4 rounded-lg" :class="importResults.success ? 'bg-green-50 border border-green-200' : 'bg-red-50 border border-red-200'">
+            <h3 class="font-semibold mb-2" :class="importResults.success ? 'text-green-800' : 'text-red-800'">
+              {{ importResults.success ? 'Import Completato!' : 'Errore nell\'Import' }}
+            </h3>
+            <div class="text-sm" :class="importResults.success ? 'text-green-700' : 'text-red-700'">
+              <p v-if="importResults.data">
+                ✅ Importati: {{ importResults.data.imported_count }} utenti<br>
+                ⚠️ Saltati: {{ importResults.data.skipped_count }} utenti
+              </p>
+              <div v-if="importResults.data?.errors?.length" class="mt-2">
+                <p class="font-medium">Errori:</p>
+                <ul class="list-disc list-inside text-xs">
+                  <li v-for="error in importResults.data.errors" :key="error">{{ error }}</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+
+          <!-- Actions -->
+          <div class="flex justify-end gap-3">
+            <button
+              @click="showImportModal = false"
+              class="px-4 py-2 text-cdf-slate600 border border-cdf-slate200 rounded-lg hover:bg-cdf-slate50 transition-colors"
+            >
+              Annulla
+            </button>
+            <button
+              @click="importCsv"
+              :disabled="!selectedFile || importing"
+              class="px-4 py-2 bg-cdf-teal text-white rounded-lg hover:bg-cdf-deep transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <span v-if="importing" class="flex items-center">
+                <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                  <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                Importazione...
+              </span>
+              <span v-else>Importa</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -343,6 +462,10 @@ const statistics = ref({})
 const showUserModal = ref(false)
 const selectedUser = ref(null)
 const isEdit = ref(false)
+const showImportModal = ref(false)
+const selectedFile = ref(null)
+const importing = ref(false)
+const importResults = ref(null)
 
 // Filters
 const filters = reactive({
@@ -467,6 +590,78 @@ const onUserSaved = () => {
   closeModal()
   loadUsers(pagination.value.current_page)
   loadStatistics()
+}
+
+const downloadTemplate = async () => {
+  try {
+    const response = await api.get('/v1/admin/users/download-template', {
+      responseType: 'blob'
+    })
+    
+    const url = window.URL.createObjectURL(new Blob([response.data]))
+    const link = document.createElement('a')
+    link.href = url
+    link.setAttribute('download', 'template_import_utenti.csv')
+    document.body.appendChild(link)
+    link.click()
+    link.remove()
+    window.URL.revokeObjectURL(url)
+  } catch (error) {
+    console.error('Errore nel download del template:', error)
+    alert('Errore nel download del template')
+  }
+}
+
+const handleFileSelect = (event) => {
+  const file = event.target.files[0]
+  if (file) {
+    selectedFile.value = file
+    importResults.value = null // Reset previous results
+  }
+}
+
+const importCsv = async () => {
+  if (!selectedFile.value) return
+  
+  try {
+    importing.value = true
+    importResults.value = null
+    
+    const formData = new FormData()
+    formData.append('file', selectedFile.value)
+    
+    const response = await api.post('/v1/admin/users/import-csv', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      }
+    })
+    
+    importResults.value = {
+      success: true,
+      data: response.data.data
+    }
+    
+    // Reload users and statistics
+    await loadUsers(pagination.value.current_page)
+    await loadStatistics()
+    
+  } catch (error) {
+    console.error('Errore nell\'import CSV:', error)
+    importResults.value = {
+      success: false,
+      error: error.response?.data?.message || 'Errore durante l\'import'
+    }
+  } finally {
+    importing.value = false
+  }
+}
+
+const formatFileSize = (bytes) => {
+  if (bytes === 0) return '0 Bytes'
+  const k = 1024
+  const sizes = ['Bytes', 'KB', 'MB', 'GB']
+  const i = Math.floor(Math.log(bytes) / Math.log(k))
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
 }
 
 const formatDate = (dateString) => {
