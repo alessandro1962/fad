@@ -188,9 +188,10 @@ const enrollUser = async () => {
     const payload = {
       user_id: form.value.user_id,
       course_id: form.value.course_id,
-      enrolled_at: form.value.enrolled_at,
-      status: form.value.status,
-      progress_percentage: form.value.progress_percentage
+      source: 'assign',
+      start_date: form.value.enrolled_at,
+      expiry_date: null,
+      send_notification: true
     }
 
     await api.post('/v1/admin/enrollments', payload)
@@ -199,7 +200,11 @@ const enrollUser = async () => {
     closeModal()
   } catch (error) {
     console.error('Errore nell\'iscrizione utente:', error)
-    alert('Errore nell\'iscrizione dell\'utente. Riprova.')
+    if (error.response?.data?.message) {
+      alert(`Errore: ${error.response.data.message}`)
+    } else {
+      alert('Errore nell\'iscrizione dell\'utente. Riprova.')
+    }
   } finally {
     loading.value = false
   }

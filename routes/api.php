@@ -118,6 +118,11 @@ Route::prefix('v1')->group(function () {
 
                 // Admin Enrollments
                 Route::post('enrollments', [AdminEnrollmentController::class, 'store']);
+                Route::post('enrollments/bulk', [AdminEnrollmentController::class, 'bulkEnroll']);
+                Route::get('users/{user}/enrollments', [AdminEnrollmentController::class, 'userEnrollments']);
+                Route::patch('enrollments/{enrollment}/status', [AdminEnrollmentController::class, 'updateStatus']);
+                Route::delete('enrollments/{enrollment}', [AdminEnrollmentController::class, 'cancel']);
+                Route::get('enrollments/statistics', [AdminEnrollmentController::class, 'statistics']);
         });
     });
 });

@@ -262,6 +262,16 @@
                         </svg>
                       </button>
                       <button
+                        @click="viewUserEnrollments(user)"
+                        class="p-2 text-cdf-blue hover:text-cdf-deep hover:bg-cdf-blue/10 rounded-lg transition-colors"
+                        title="Visualizza Iscrizioni"
+                      >
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                        </svg>
+                      </button>
+                      <button
                         @click="editUser(user)"
                         class="p-2 text-cdf-slate600 hover:text-cdf-deep hover:bg-cdf-slate100 rounded-lg transition-colors"
                         title="Modifica Utente"
@@ -619,6 +629,21 @@
       @close="showCreateModal = false"
       @success="onUserCreated"
     />
+
+    <!-- Enroll User Modal -->
+    <EnrollUserModal
+      :is-open="showEnrollModal"
+      @close="showEnrollModal = false"
+      @success="onEnrollmentSuccess"
+    />
+
+    <!-- User Enrollments Modal -->
+    <UserEnrollmentsModal
+      :is-open="showUserEnrollmentsModal"
+      :user="selectedUserForEnrollment"
+      @close="showUserEnrollmentsModal = false"
+      @enroll-user="enrollUser"
+    />
   </div>
 </template>
 
@@ -628,6 +653,8 @@ import { useRouter } from 'vue-router'
 import api from '@/api'
 import UserModal from '@/components/Admin/UserModal.vue'
 import CreateUserModal from '@/components/Admin/CreateUserModal.vue'
+import EnrollUserModal from '@/components/Admin/EnrollUserModal.vue'
+import UserEnrollmentsModal from '@/components/Admin/UserEnrollmentsModal.vue'
 
 const router = useRouter()
 
@@ -647,6 +674,8 @@ const selectedUserForEnrollment = ref(null)
 const availableCourses = ref([])
 const enrolling = ref(false)
 const showCreateModal = ref(false)
+const showEnrollModal = ref(false)
+const showUserEnrollmentsModal = ref(false)
 const enrollmentForm = reactive({
   course_id: null,
   source: 'assign',
@@ -925,6 +954,23 @@ const onUserCreated = async (user) => {
   await loadUsers(pagination.value.current_page)
   await loadStatistics()
   alert('Utente creato con successo!')
+}
+
+const enrollUser = (user) => {
+  selectedUserForEnrollment.value = user
+  showEnrollModal.value = true
+}
+
+const viewUserEnrollments = (user) => {
+  selectedUserForEnrollment.value = user
+  showUserEnrollmentsModal.value = true
+}
+
+const onEnrollmentSuccess = async () => {
+  // Reload users list to update enrollment counts
+  await loadUsers(pagination.value.current_page)
+  await loadStatistics()
+  alert('Utente iscritto al corso con successo!')
 }
 
 const formatDate = (dateString) => {
