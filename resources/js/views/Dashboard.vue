@@ -25,30 +25,30 @@
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
             <StatCard
                 title="Corsi Attivi"
-                value="3"
+                :value="stats.activeCourses.toString()"
                 icon="courses"
                 :change="12"
                 change-label="rispetto al mese scorso"
             />
             <StatCard
                 title="Completati"
-                value="1"
+                :value="stats.completedCourses.toString()"
                 icon="completed"
                 :change="25"
                 change-label="rispetto al mese scorso"
             />
             <StatCard
                 title="Attestati"
-                value="1"
+                :value="stats.certificates.toString()"
                 icon="certificates"
                 :change="0"
                 change-label="rispetto al mese scorso"
             />
             <StatCard
                 title="Livello Attuale"
-                value="Principiante"
+                :value="stats.level"
                 icon="level"
-                :change="5"
+                :change="stats.experience"
                 change-label="punti esperienza"
             />
         </div>
@@ -65,9 +65,19 @@
                         </router-link>
                     </div>
                     
-                    <div class="space-y-4">
+                    <!-- Loading State -->
+                    <div v-if="loading" class="flex justify-center py-8">
+                        <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-cdf-teal"></div>
+                    </div>
+
+                    <!-- Courses List -->
+                    <div v-else class="space-y-4">
                         <!-- Course Progress Item -->
-                        <div class="border border-cdf-slate200 rounded-xl p-4 hover:border-cdf-teal/30 transition-colors duration-200">
+                        <div 
+                            v-for="course in courses" 
+                            :key="course.id"
+                            class="border border-cdf-slate200 rounded-xl p-4 hover:border-cdf-teal/30 transition-colors duration-200"
+                        >
                             <div class="flex items-center justify-between mb-3">
                                 <div class="flex items-center space-x-3">
                                     <div class="w-12 h-12 bg-gradient-to-br from-cdf-teal/20 to-cdf-deep/20 rounded-xl flex items-center justify-center">
@@ -76,84 +86,38 @@
                                         </svg>
                                     </div>
                                     <div>
-                                        <h3 class="font-semibold text-cdf-deep">Cybersecurity Base</h3>
-                                        <p class="text-sm text-cdf-slate700">Ultimo accesso: 2 giorni fa</p>
+                                        <h3 class="font-semibold text-cdf-deep">{{ course.title }}</h3>
+                                        <p class="text-sm text-cdf-slate700">{{ course.lastAccess }}</p>
                                     </div>
                                 </div>
-                                <span class="text-sm font-semibold text-cdf-deep">75%</span>
+                                <span class="text-sm font-semibold text-cdf-deep">{{ course.progress }}%</span>
                             </div>
                             <div class="w-full bg-cdf-slate200 rounded-full h-2 mb-3">
-                                <div class="bg-gradient-to-r from-cdf-teal to-cdf-deep h-2 rounded-full transition-all duration-500" style="width: 75%"></div>
+                                <div class="bg-gradient-to-r from-cdf-teal to-cdf-deep h-2 rounded-full transition-all duration-500" :style="`width: ${course.progress}%`"></div>
                             </div>
                             <div class="flex items-center justify-between">
                                 <div class="flex items-center space-x-4 text-sm text-cdf-slate700">
-                                    <span>⏱️ 3 ore</span>
-                                    <span>📚 5 moduli</span>
+                                    <span>⏱️ {{ course.duration }}</span>
+                                    <span>📚 {{ course.modules }} moduli</span>
                                 </div>
-                                <button class="px-4 py-2 bg-cdf-teal text-white rounded-lg text-sm font-medium hover:bg-cdf-teal/90 transition-colors duration-200">
-                                    Continua
+                                <button :class="`px-4 py-2 text-white rounded-lg text-sm font-medium transition-colors duration-200 ${getStatusClass(course.status)}`">
+                                    {{ getStatusText(course.status) }}
                                 </button>
                             </div>
                         </div>
 
-                        <!-- Course Progress Item -->
-                        <div class="border border-cdf-slate200 rounded-xl p-4 hover:border-cdf-teal/30 transition-colors duration-200">
-                            <div class="flex items-center justify-between mb-3">
-                                <div class="flex items-center space-x-3">
-                                    <div class="w-12 h-12 bg-gradient-to-br from-cdf-amber/20 to-cdf-deep/20 rounded-xl flex items-center justify-center">
-                                        <svg class="w-6 h-6 text-cdf-deep" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                                        </svg>
-                                    </div>
-                                    <div>
-                                        <h3 class="font-semibold text-cdf-deep">GDPR per Incaricati</h3>
-                                        <p class="text-sm text-cdf-slate700">Ultimo accesso: 1 settimana fa</p>
-                                    </div>
-                                </div>
-                                <span class="text-sm font-semibold text-cdf-deep">30%</span>
+                        <!-- Empty State -->
+                        <div v-if="courses.length === 0" class="text-center py-8">
+                            <div class="w-16 h-16 bg-cdf-slate200 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                                <svg class="w-8 h-8 text-cdf-slate700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
+                                </svg>
                             </div>
-                            <div class="w-full bg-cdf-slate200 rounded-full h-2 mb-3">
-                                <div class="bg-gradient-to-r from-cdf-teal to-cdf-deep h-2 rounded-full transition-all duration-500" style="width: 30%"></div>
-                            </div>
-                            <div class="flex items-center justify-between">
-                                <div class="flex items-center space-x-4 text-sm text-cdf-slate700">
-                                    <span>⏱️ 4 ore</span>
-                                    <span>📚 6 moduli</span>
-                                </div>
-                                <button class="px-4 py-2 bg-cdf-teal text-white rounded-lg text-sm font-medium hover:bg-cdf-teal/90 transition-colors duration-200">
-                                    Continua
-                                </button>
-                            </div>
-                        </div>
-
-                        <!-- Course Progress Item -->
-                        <div class="border border-cdf-slate200 rounded-xl p-4 hover:border-cdf-teal/30 transition-colors duration-200">
-                            <div class="flex items-center justify-between mb-3">
-                                <div class="flex items-center space-x-3">
-                                    <div class="w-12 h-12 bg-gradient-to-br from-cdf-deep/20 to-cdf-teal/20 rounded-xl flex items-center justify-center">
-                                        <svg class="w-6 h-6 text-cdf-deep" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
-                                        </svg>
-                                    </div>
-                                    <div>
-                                        <h3 class="font-semibold text-cdf-deep">NIS2 per Dipendenti</h3>
-                                        <p class="text-sm text-cdf-slate700">Non ancora iniziato</p>
-                                    </div>
-                                </div>
-                                <span class="text-sm font-semibold text-cdf-deep">0%</span>
-                            </div>
-                            <div class="w-full bg-cdf-slate200 rounded-full h-2 mb-3">
-                                <div class="bg-gradient-to-r from-cdf-teal to-cdf-deep h-2 rounded-full transition-all duration-500" style="width: 0%"></div>
-                            </div>
-                            <div class="flex items-center justify-between">
-                                <div class="flex items-center space-x-4 text-sm text-cdf-slate700">
-                                    <span>⏱️ 2 ore</span>
-                                    <span>📚 3 moduli</span>
-                                </div>
-                                <button class="px-4 py-2 bg-cdf-deep text-white rounded-lg text-sm font-medium hover:bg-cdf-deep/90 transition-colors duration-200">
-                                    Inizia
-                                </button>
-                            </div>
+                            <h3 class="text-lg font-semibold text-cdf-deep mb-2">Nessun corso trovato</h3>
+                            <p class="text-cdf-slate700 mb-4">Non hai ancora corsi assegnati</p>
+                            <router-link to="/catalogo" class="btn-primary">
+                                Sfoglia Catalogo
+                            </router-link>
                         </div>
                     </div>
                 </div>
@@ -283,9 +247,98 @@
 </template>
 
 <script setup>
+import { ref, onMounted } from 'vue';
 import AppLayout from '@/components/Layout/AppLayout.vue';
 import StatCard from '@/components/Dashboard/StatCard.vue';
 import { useAuthStore } from '@/stores/auth';
+import api from '@/api';
 
 const authStore = useAuthStore();
+const loading = ref(false);
+const courses = ref([]);
+const stats = ref({
+    activeCourses: 0,
+    completedCourses: 0,
+    certificates: 0,
+    level: 'Principiante',
+    experience: 0
+});
+
+// Load user data
+const loadDashboardData = async () => {
+    loading.value = true;
+    try {
+        // Load enrollments
+        const enrollmentsResponse = await api.get('/v1/enrollments');
+        const enrollments = enrollmentsResponse.data.data;
+        
+        // Map courses for display
+        courses.value = enrollments.slice(0, 3).map(enrollment => ({
+            id: enrollment.course.id,
+            title: enrollment.course.title,
+            progress: enrollment.progress_percentage || 0,
+            duration: `${enrollment.course.duration_minutes} min`,
+            modules: enrollment.course.modules_count || 0,
+            status: getEnrollmentStatus(enrollment),
+            lastAccess: getLastAccessText(enrollment.started_at)
+        }));
+
+        // Calculate stats
+        const activeEnrollments = enrollments.filter(e => e.status === 'active' && e.progress_percentage > 0);
+        const completedEnrollments = enrollments.filter(e => e.status === 'completed');
+        
+        stats.value = {
+            activeCourses: activeEnrollments.length,
+            completedCourses: completedEnrollments.length,
+            certificates: completedEnrollments.length, // Assuming 1 certificate per completed course
+            level: 'Principiante', // This would come from gamification API
+            experience: Math.floor(Math.random() * 100) // This would come from gamification API
+        };
+
+    } catch (error) {
+        console.error('Errore nel caricamento dashboard:', error);
+        courses.value = [];
+    } finally {
+        loading.value = false;
+    }
+};
+
+const getEnrollmentStatus = (enrollment) => {
+    if (enrollment.status === 'completed') return 'completed';
+    if (enrollment.status === 'active' && enrollment.progress_percentage > 0) return 'active';
+    return 'not-started';
+};
+
+const getLastAccessText = (startedAt) => {
+    if (!startedAt) return 'Non ancora iniziato';
+    const days = Math.floor((new Date() - new Date(startedAt)) / (1000 * 60 * 60 * 24));
+    if (days === 0) return 'Oggi';
+    if (days === 1) return '1 giorno fa';
+    if (days < 7) return `${days} giorni fa`;
+    if (days < 14) return '1 settimana fa';
+    return `${Math.floor(days / 7)} settimane fa`;
+};
+
+const getStatusText = (status) => {
+    const texts = {
+        'active': 'Continua',
+        'completed': 'Rivedi',
+        'not-started': 'Inizia'
+    };
+    return texts[status] || 'Inizia';
+};
+
+const getStatusClass = (status) => {
+    const classes = {
+        'active': 'bg-cdf-teal hover:bg-cdf-teal/90',
+        'completed': 'bg-green-600 hover:bg-green-700',
+        'not-started': 'bg-cdf-deep hover:bg-cdf-deep/90'
+    };
+    return classes[status] || 'bg-cdf-deep hover:bg-cdf-deep/90';
+};
+
+// Load data when component mounts
+onMounted(() => {
+    loadDashboardData();
+});
 </script>
