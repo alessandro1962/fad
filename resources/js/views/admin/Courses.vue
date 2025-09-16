@@ -292,6 +292,7 @@
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import api from '@/api'
 import CourseModal from '../../components/Admin/CourseModal.vue'
 import CourseStatsModal from '../../components/Admin/CourseStatsModal.vue'
 import ModuleManagementModal from '../../components/Admin/ModuleManagementModal.vue'
