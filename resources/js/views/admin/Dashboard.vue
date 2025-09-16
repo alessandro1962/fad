@@ -95,12 +95,18 @@
                         >
                             Gestisci Utenti
                         </router-link>
-                        <button class="w-full btn-secondary">
+                        <router-link 
+                            to="/admin/analytics"
+                            class="w-full btn-secondary block text-center"
+                        >
                             Report Analytics
-                        </button>
-                        <button class="w-full btn-secondary">
+                        </router-link>
+                        <router-link 
+                            to="/admin/settings"
+                            class="w-full btn-secondary block text-center"
+                        >
                             Impostazioni Sistema
-                        </button>
+                        </router-link>
                     </div>
                 </div>
 
