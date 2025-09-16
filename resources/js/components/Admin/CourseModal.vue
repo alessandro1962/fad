@@ -287,29 +287,11 @@ const saveCourse = async () => {
       price_cents: priceCents.value
     }
 
-    const url = props.isEdit 
-      ? `/api/admin/courses/${props.course.id}`
-      : '/api/admin/courses'
-    
-    const method = props.isEdit ? 'PUT' : 'POST'
+    const response = props.isEdit
+      ? await api.put(`/v1/admin/courses/${props.course.id}`, payload)
+      : await api.post('/v1/admin/courses', payload)
 
-    const response = await fetch(url, {
-      method,
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-        'Authorization': `Bearer ${localStorage.getItem('token')}`
-      },
-      body: JSON.stringify(payload)
-    })
-
-    if (!response.ok) {
-      const error = await response.json()
-      throw new Error(error.message || 'Errore nel salvataggio')
-    }
-
-    const data = await response.json()
-    emit('saved', data.data)
+    emit('saved', response.data.data)
   } catch (error) {
     console.error('Errore:', error)
     alert(error.message)
