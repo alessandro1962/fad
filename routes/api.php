@@ -5,10 +5,12 @@ use App\Http\Controllers\Api\V1\BadgeController;
 use App\Http\Controllers\Api\V1\CertificateController;
 use App\Http\Controllers\Api\V1\CourseController;
 use App\Http\Controllers\Api\V1\EnrollmentController;
+use App\Http\Controllers\Api\V1\GamificationController;
 use App\Http\Controllers\Api\V1\NotificationController;
 use App\Http\Controllers\Api\V1\ProgressController;
 use App\Http\Controllers\Api\V1\QuizController;
 use App\Http\Controllers\Admin\CourseController as AdminCourseController;
+use App\Http\Controllers\Admin\AnalyticsController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -63,10 +65,17 @@ Route::prefix('v1')->group(function () {
         
         // Badge routes
         Route::get('/badges', [BadgeController::class, 'index']);
-        Route::get('/badges/my-badges', [BadgeController::class, 'userBadges']);
+        Route::get('/badges/mine', [BadgeController::class, 'userBadges']);
+        Route::get('/badges/recent', [BadgeController::class, 'recent']);
         Route::get('/badges/progress', [BadgeController::class, 'progress']);
         Route::get('/badges/{badge}', [BadgeController::class, 'show']);
         Route::post('/badges/{badge}/award', [BadgeController::class, 'award']);
+        
+        // Gamification routes
+        Route::get('/gamification/stats', [GamificationController::class, 'getStats']);
+        Route::get('/gamification/achievements', [GamificationController::class, 'getAchievements']);
+        Route::get('/gamification/leaderboard', [GamificationController::class, 'getLeaderboard']);
+        Route::get('/gamification/streak-calendar', [GamificationController::class, 'getStreakCalendar']);
         
         // Notification routes
         Route::get('/notifications', [NotificationController::class, 'index']);
@@ -100,6 +109,11 @@ Route::prefix('v1')->group(function () {
             Route::get('users/statistics', [App\Http\Controllers\Admin\UserController::class, 'statistics']);
             Route::post('users/import-csv', [App\Http\Controllers\Admin\UserController::class, 'importCsv']);
             Route::get('users/download-template', [App\Http\Controllers\Admin\UserController::class, 'downloadTemplate']);
+            
+            // Analytics
+            Route::get('analytics', [AnalyticsController::class, 'index']);
+            Route::get('analytics/export', [AnalyticsController::class, 'export']);
+            Route::get('analytics/engagement', [AnalyticsController::class, 'engagement']);
         });
     });
 });

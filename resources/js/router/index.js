@@ -49,6 +49,11 @@ const routes = [
         meta: { requiresAuth: true }
     },
     {
+        path: '/certificates/:uid',
+        name: 'public-certificate',
+        component: () => import('@/views/PublicCertificate.vue'),
+    },
+    {
         path: '/profilo',
         name: 'profile',
         component: () => import('@/views/Profile.vue'),

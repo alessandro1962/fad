@@ -47,24 +47,85 @@
 
                 <!-- Current Lesson -->
                 <div class="bg-white rounded-2xl shadow-sm border border-cdf-slate200 p-6 mb-6">
-                    <h2 class="text-lg font-bold text-cdf-deep mb-4">Lezione Corrente</h2>
-                    <div class="aspect-video bg-cdf-slate200 rounded-xl mb-4 flex items-center justify-center">
-                        <div class="text-center">
-                            <svg class="w-16 h-16 text-cdf-slate700 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.828 14.828a4 4 0 01-5.656 0M9 10h1m4 0h1m-6 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                            </svg>
-                            <p class="text-cdf-slate700">Player Video</p>
+                    <div class="flex items-center justify-between mb-4">
+                        <h2 class="text-lg font-bold text-cdf-deep">Lezione Corrente</h2>
+                        <div class="flex items-center gap-2">
+                            <span class="px-3 py-1 rounded-full text-xs font-semibold"
+                                  :class="currentLesson.type === 'video' ? 'bg-blue-100 text-blue-800' : 
+                                         currentLesson.type === 'quiz' ? 'bg-purple-100 text-purple-800' :
+                                         currentLesson.type === 'pdf' ? 'bg-red-100 text-red-800' :
+                                         'bg-gray-100 text-gray-800'">
+                                {{ getLessonTypeLabel(currentLesson.type) }}
+                            </span>
                         </div>
                     </div>
-                    <h3 class="text-xl font-bold text-cdf-deep mb-2">{{ currentLesson.title }}</h3>
-                    <p class="text-cdf-slate700 mb-4">{{ currentLesson.description }}</p>
-                    <div class="flex items-center space-x-4">
-                        <button class="btn-primary">
-                            {{ currentLesson.completed ? 'Rivedi' : 'Inizia Lezione' }}
-                        </button>
-                        <button class="btn-secondary">
-                            Materiali
-                        </button>
+
+                    <!-- Video Player -->
+                    <VideoPlayer
+                        v-if="currentLesson.type === 'video'"
+                        :lesson="currentLesson"
+                        :user-progress="currentLessonProgress"
+                        :block-progression="currentLesson.payload?.block_progression !== false"
+                        @progress-updated="onProgressUpdated"
+                        @lesson-completed="onLessonCompleted"
+                        @next-lesson="onNextLesson"
+                    />
+
+                    <!-- Quiz Player -->
+                    <QuizPlayer
+                        v-else-if="currentLesson.type === 'quiz'"
+                        :lesson="currentLesson"
+                        :user-attempts="currentLessonAttempts"
+                        @quiz-completed="onQuizCompleted"
+                        @next-lesson="onNextLesson"
+                    />
+
+                    <!-- PDF Viewer -->
+                    <div v-else-if="currentLesson.type === 'pdf'" class="space-y-4">
+                        <div class="aspect-video bg-cdf-slate200 rounded-xl flex items-center justify-center">
+                            <div class="text-center">
+                                <svg class="w-16 h-16 text-cdf-slate700 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                                </svg>
+                                <p class="text-cdf-slate700 mb-4">Visualizzatore PDF</p>
+                                <button class="btn-primary">
+                                    Apri PDF
+                                </button>
+                            </div>
+                        </div>
+                        <div class="flex items-center space-x-4">
+                            <button @click="markLessonCompleted" class="btn-primary">
+                                Segna come Completato
+                            </button>
+                            <button class="btn-secondary">
+                                Scarica PDF
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Default Content -->
+                    <div v-else class="space-y-4">
+                        <div class="aspect-video bg-cdf-slate200 rounded-xl flex items-center justify-center">
+                            <div class="text-center">
+                                <svg class="w-16 h-16 text-cdf-slate700 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                                </svg>
+                                <p class="text-cdf-slate700">{{ getLessonTypeLabel(currentLesson.type) }}</p>
+                            </div>
+                        </div>
+                        <div class="flex items-center space-x-4">
+                            <button @click="markLessonCompleted" class="btn-primary">
+                                {{ currentLesson.completed ? 'Rivedi' : 'Inizia Lezione' }}
+                            </button>
+                            <button class="btn-secondary">
+                                Materiali
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="mt-4">
+                        <h3 class="text-xl font-bold text-cdf-deep mb-2">{{ currentLesson.title }}</h3>
+                        <p class="text-cdf-slate700">{{ currentLesson.description }}</p>
                     </div>
                 </div>
 
@@ -183,76 +244,195 @@
 </template>
 
 <script setup>
-import { ref } from 'vue';
+import { ref, computed, onMounted } from 'vue';
+import { useRoute } from 'vue-router';
 import AppLayout from '@/components/Layout/AppLayout.vue';
+import VideoPlayer from '@/components/Course/VideoPlayer.vue';
+import QuizPlayer from '@/components/Course/QuizPlayer.vue';
+import api from '@/api';
 
-// Sample course data
-const course = ref({
-    id: 1,
-    title: 'Cybersecurity Base',
-    description: 'Fondamenti di sicurezza informatica per principianti. Impara le basi della protezione dei dati e dei sistemi.',
-    level: 'Principiante',
-    duration: '3 ore',
-    modules: 5,
-    progress: 75,
-    startedAt: '15 Gen 2024',
-    features: [
-        'Quiz interattivi',
-        'Materiali scaricabili',
-        'Attestato finale',
-        'Supporto dedicato'
-    ],
-    modules: [
-        {
-            title: 'Introduzione alla Cybersecurity',
-            duration: '30 min',
-            completed: true,
-            lessons: [
-                { id: 1, title: 'Cos\'è la Cybersecurity', duration: '10 min', completed: true, order: 1 },
-                { id: 2, title: 'Minacce e Vulnerabilità', duration: '20 min', completed: true, order: 2 }
-            ]
-        },
-        {
-            title: 'Protezione dei Dati',
-            duration: '45 min',
-            completed: true,
-            lessons: [
-                { id: 3, title: 'Classificazione dei Dati', duration: '15 min', completed: true, order: 3 },
-                { id: 4, title: 'Backup e Recovery', duration: '30 min', completed: true, order: 4 }
-            ]
-        },
-        {
-            title: 'Sicurezza delle Reti',
-            duration: '60 min',
-            completed: false,
-            lessons: [
-                { id: 5, title: 'Firewall e VPN', duration: '30 min', completed: false, order: 5 },
-                { id: 6, title: 'Monitoraggio di Rete', duration: '30 min', completed: false, order: 6 }
-            ]
-        },
-        {
-            title: 'Best Practices',
-            duration: '30 min',
-            completed: false,
-            lessons: [
-                { id: 7, title: 'Password e Autenticazione', duration: '15 min', completed: false, order: 7 },
-                { id: 8, title: 'Formazione Utenti', duration: '15 min', completed: false, order: 8 }
-            ]
-        },
-        {
-            title: 'Test Finale',
-            duration: '15 min',
-            completed: false,
-            lessons: [
-                { id: 9, title: 'Quiz di Verifica', duration: '15 min', completed: false, order: 9 }
-            ]
+const route = useRoute();
+
+// State
+const course = ref({});
+const currentLesson = ref({});
+const currentLessonProgress = ref({});
+const currentLessonAttempts = ref([]);
+const loading = ref(true);
+
+// Computed
+const courseId = computed(() => route.params.id);
+
+// Methods
+const getLessonTypeLabel = (type) => {
+    const labels = {
+        video: 'Video',
+        quiz: 'Quiz',
+        pdf: 'PDF',
+        slide: 'Slide',
+        link: 'Link'
+    };
+    return labels[type] || 'Contenuto';
+};
+
+const loadCourse = async () => {
+    try {
+        loading.value = true;
+        const response = await api.get(`/v1/courses/${courseId.value}`);
+        course.value = response.data.data;
+        
+        // Load current lesson (first incomplete lesson or last lesson)
+        await loadCurrentLesson();
+    } catch (error) {
+        console.error('Errore nel caricamento corso:', error);
+    } finally {
+        loading.value = false;
+    }
+};
+
+const loadCurrentLesson = async () => {
+    try {
+        // Find first incomplete lesson
+        let targetLesson = null;
+        for (const module of course.value.modules || []) {
+            for (const lesson of module.lessons || []) {
+                if (!lesson.completed) {
+                    targetLesson = lesson;
+                    break;
+                }
+            }
+            if (targetLesson) break;
         }
-    ]
-});
+        
+        // If all lessons completed, use last lesson
+        if (!targetLesson && course.value.modules?.length > 0) {
+            const lastModule = course.value.modules[course.value.modules.length - 1];
+            if (lastModule.lessons?.length > 0) {
+                targetLesson = lastModule.lessons[lastModule.lessons.length - 1];
+            }
+        }
+        
+        if (targetLesson) {
+            currentLesson.value = targetLesson;
+            await loadLessonProgress();
+            await loadLessonAttempts();
+        }
+    } catch (error) {
+        console.error('Errore nel caricamento lezione corrente:', error);
+    }
+};
 
-const currentLesson = ref({
-    title: 'Firewall e VPN',
-    description: 'Impara i concetti fondamentali di firewall e VPN per proteggere la tua rete aziendale.',
-    completed: false
+const loadLessonProgress = async () => {
+    try {
+        const response = await api.get(`/v1/progress/${currentLesson.value.id}`);
+        currentLessonProgress.value = response.data.data;
+    } catch (error) {
+        console.error('Errore nel caricamento progresso lezione:', error);
+        currentLessonProgress.value = {};
+    }
+};
+
+const loadLessonAttempts = async () => {
+    try {
+        if (currentLesson.value.type === 'quiz') {
+            const response = await api.get(`/v1/quiz-attempts`, {
+                params: { lesson_id: currentLesson.value.id }
+            });
+            currentLessonAttempts.value = response.data.data;
+        }
+    } catch (error) {
+        console.error('Errore nel caricamento tentativi quiz:', error);
+        currentLessonAttempts.value = [];
+    }
+};
+
+const onProgressUpdated = (progressData) => {
+    currentLessonProgress.value = progressData;
+    // Update course progress
+    updateCourseProgress();
+};
+
+const onLessonCompleted = (lesson) => {
+    // Mark lesson as completed
+    lesson.completed = true;
+    currentLessonProgress.value.completed = true;
+    
+    // Update course progress
+    updateCourseProgress();
+    
+    // Load next lesson
+    loadNextLesson();
+};
+
+const onQuizCompleted = (result) => {
+    if (result.result.passed) {
+        onLessonCompleted(result.lesson);
+    }
+};
+
+const onNextLesson = () => {
+    loadNextLesson();
+};
+
+const loadNextLesson = async () => {
+    // Find next incomplete lesson
+    let nextLesson = null;
+    let foundCurrent = false;
+    
+    for (const module of course.value.modules || []) {
+        for (const lesson of module.lessons || []) {
+            if (foundCurrent && !lesson.completed) {
+                nextLesson = lesson;
+                break;
+            }
+            if (lesson.id === currentLesson.value.id) {
+                foundCurrent = true;
+            }
+        }
+        if (nextLesson) break;
+    }
+    
+    if (nextLesson) {
+        currentLesson.value = nextLesson;
+        await loadLessonProgress();
+        await loadLessonAttempts();
+    }
+};
+
+const markLessonCompleted = async () => {
+    try {
+        await api.patch(`/v1/progress/${currentLesson.value.id}`, {
+            completed: true,
+            seconds_watched: currentLesson.value.duration_minutes * 60 || 0
+        });
+        
+        onLessonCompleted(currentLesson.value);
+    } catch (error) {
+        console.error('Errore nel completamento lezione:', error);
+    }
+};
+
+const updateCourseProgress = () => {
+    // Calculate course progress based on completed lessons
+    let totalLessons = 0;
+    let completedLessons = 0;
+    
+    for (const module of course.value.modules || []) {
+        for (const lesson of module.lessons || []) {
+            totalLessons++;
+            if (lesson.completed) {
+                completedLessons++;
+            }
+        }
+    }
+    
+    if (totalLessons > 0) {
+        course.value.progress = Math.round((completedLessons / totalLessons) * 100);
+    }
+};
+
+// Lifecycle
+onMounted(() => {
+    loadCourse();
 });
 </script>

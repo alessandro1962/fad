@@ -85,6 +85,36 @@ class BadgeController extends Controller
     }
 
     /**
+     * Get user's recent badges.
+     */
+    public function recent(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        
+        $recentBadges = $user->badges()
+            ->withPivot('awarded_at', 'reason', 'metadata')
+            ->orderBy('user_badges.awarded_at', 'desc')
+            ->limit(6)
+            ->get()
+            ->map(function ($badge) {
+                return [
+                    'id' => $badge->id,
+                    'name' => $badge->name,
+                    'description' => $badge->description,
+                    'icon' => $badge->icon,
+                    'color' => $badge->color,
+                    'category' => $badge->category,
+                    'awarded_at' => $badge->pivot->awarded_at->toISOString(),
+                    'reason' => $badge->pivot->reason,
+                ];
+            });
+
+        return response()->json([
+            'data' => $recentBadges,
+        ]);
+    }
+
+    /**
      * Get user's badge progress (badges not yet earned).
      */
     public function progress(Request $request): JsonResponse
