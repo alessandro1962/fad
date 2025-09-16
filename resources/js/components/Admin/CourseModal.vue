@@ -286,9 +286,18 @@ const saveCourse = async () => {
   
   try {
     const payload = {
-      ...form,
+      title: form.title,
+      slug: form.slug,
+      summary: form.summary,
+      description: form.description,
+      level: form.level,
+      duration_minutes: form.duration_minutes,
       price_cents: priceCents.value,
-      currency: form.currency
+      currency: form.currency,
+      tags: form.tags,
+      video_preview_url: form.video_preview_url,
+      is_active: form.is_active,
+      published_at: form.published_at ? new Date().toISOString() : null
     }
 
     const response = props.isEdit
