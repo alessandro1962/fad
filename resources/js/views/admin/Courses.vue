@@ -4,9 +4,21 @@
     <div class="bg-white shadow-sm border-b border-cdf-slate200">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="flex justify-between items-center py-6">
-          <div>
-            <h1 class="text-2xl font-bold text-cdf-deep">Gestione Corsi</h1>
-            <p class="text-cdf-slate700 mt-1">Crea e gestisci i corsi della piattaforma</p>
+          <div class="flex items-center gap-4">
+            <button
+              @click="goToDashboard"
+              class="flex items-center gap-2 px-3 py-2 text-cdf-slate600 hover:text-cdf-deep hover:bg-cdf-slate100 rounded-lg transition-colors"
+              title="Torna alla Dashboard"
+            >
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+              </svg>
+              Dashboard
+            </button>
+            <div>
+              <h1 class="text-2xl font-bold text-cdf-deep">Gestione Corsi</h1>
+              <p class="text-cdf-slate700 mt-1">Crea e gestisci i corsi della piattaforma</p>
+            </div>
           </div>
           <button
             @click="showCreateModal = true"
@@ -426,6 +438,10 @@ const manageCourseModules = (course) => {
 const onModulesUpdated = () => {
   // Ricarica la lista dei corsi per aggiornare il conteggio moduli
   loadCourses(pagination.value.current_page)
+}
+
+const goToDashboard = () => {
+  router.push('/admin')
 }
 
 // Helper methods

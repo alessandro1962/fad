@@ -3,9 +3,21 @@
     <div class="bg-white rounded-xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
       <!-- Header -->
       <div class="flex items-center justify-between p-6 border-b border-cdf-slate200">
-        <h2 class="text-xl font-bold text-cdf-deep">
-          {{ isEdit ? 'Modifica Corso' : 'Nuovo Corso' }}
-        </h2>
+        <div class="flex items-center gap-4">
+          <button
+            @click="goToDashboard"
+            class="flex items-center gap-2 px-3 py-2 text-cdf-slate600 hover:text-cdf-deep hover:bg-cdf-slate100 rounded-lg transition-colors"
+            title="Torna alla Dashboard"
+          >
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+            </svg>
+            Dashboard
+          </button>
+          <h2 class="text-xl font-bold text-cdf-deep">
+            {{ isEdit ? 'Modifica Corso' : 'Nuovo Corso' }}
+          </h2>
+        </div>
         <button
           @click="$emit('close')"
           class="p-2 text-cdf-slate400 hover:text-cdf-slate600 hover:bg-cdf-slate200 rounded-lg transition-all"
@@ -215,6 +227,7 @@
 
 <script setup>
 import { ref, reactive, computed, watch } from 'vue'
+import { useRouter } from 'vue-router'
 import api from '@/api'
 
 const props = defineProps({
@@ -229,6 +242,7 @@ const props = defineProps({
 })
 
 const emit = defineEmits(['close', 'saved'])
+const router = useRouter()
 
 const saving = ref(false)
 
@@ -311,5 +325,9 @@ const saveCourse = async () => {
   } finally {
     saving.value = false
   }
+}
+
+const goToDashboard = () => {
+  router.push('/admin')
 }
 </script>

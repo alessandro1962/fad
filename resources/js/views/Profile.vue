@@ -2,6 +2,18 @@
     <AppLayout>
         <!-- Header -->
         <div class="mb-8">
+            <div class="flex items-center gap-4 mb-4">
+                <button
+                    @click="goToDashboard"
+                    class="flex items-center gap-2 px-3 py-2 text-cdf-slate600 hover:text-cdf-deep hover:bg-cdf-slate100 rounded-lg transition-colors"
+                    title="Torna alla Dashboard"
+                >
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+                    </svg>
+                    Dashboard
+                </button>
+            </div>
             <h1 class="text-3xl font-bold text-cdf-deep">Il Mio Profilo</h1>
             <p class="text-cdf-slate700 mt-2">Gestisci le tue informazioni personali e le preferenze</p>
         </div>
@@ -275,10 +287,12 @@
 
 <script setup>
 import { ref, reactive } from 'vue';
+import { useRouter } from 'vue-router';
 import AppLayout from '@/components/Layout/AppLayout.vue';
 import { useAuthStore } from '@/stores/auth';
 
 const authStore = useAuthStore();
+const router = useRouter();
 const showDeleteModal = ref(false);
 const isUpdating = ref(false);
 const isChangingPassword = ref(false);
@@ -377,6 +391,10 @@ const deleteAccount = async () => {
         isDeleting.value = false;
         showDeleteModal.value = false;
     }
+};
+
+const goToDashboard = () => {
+    router.push('/dashboard');
 };
 
 const formatDate = (dateString) => {

@@ -8,11 +8,23 @@
       <div class="relative w-full max-w-4xl bg-white rounded-2xl shadow-2xl">
         <!-- Header -->
         <div class="flex items-center justify-between p-6 border-b border-cdf-slate200">
-          <div>
-            <h2 class="text-2xl font-bold text-cdf-deep">
-              {{ isEdit ? 'Modifica Lezione' : 'Nuova Lezione' }}
-            </h2>
-            <p class="text-cdf-slate600 mt-1">{{ module?.title }}</p>
+          <div class="flex items-center gap-4">
+            <button
+              @click="goToDashboard"
+              class="flex items-center gap-2 px-3 py-2 text-cdf-slate600 hover:text-cdf-deep hover:bg-cdf-slate100 rounded-lg transition-colors"
+              title="Torna alla Dashboard"
+            >
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+              </svg>
+              Dashboard
+            </button>
+            <div>
+              <h2 class="text-2xl font-bold text-cdf-deep">
+                {{ isEdit ? 'Modifica Lezione' : 'Nuova Lezione' }}
+              </h2>
+              <p class="text-cdf-slate600 mt-1">{{ module?.title }}</p>
+            </div>
           </div>
           <button
             @click="closeModal"
@@ -435,6 +447,7 @@
 
 <script setup>
 import { ref, computed, watch } from 'vue'
+import { useRouter } from 'vue-router'
 import api from '@/api'
 
 const props = defineProps({
@@ -453,6 +466,7 @@ const props = defineProps({
 })
 
 const emit = defineEmits(['close', 'saved'])
+const router = useRouter()
 
 // State
 const loading = ref(false)
@@ -620,6 +634,10 @@ const saveLesson = async () => {
   } finally {
     loading.value = false
   }
+}
+
+const goToDashboard = () => {
+  router.push('/admin')
 }
 
 // Watch for lesson changes

@@ -2,6 +2,18 @@
     <AppLayout>
         <!-- Header -->
         <div class="mb-8">
+            <div class="flex items-center gap-4 mb-4">
+                <button
+                    @click="goToDashboard"
+                    class="flex items-center gap-2 px-3 py-2 text-cdf-slate600 hover:text-cdf-deep hover:bg-cdf-slate100 rounded-lg transition-colors"
+                    title="Torna alla Dashboard"
+                >
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+                    </svg>
+                    Dashboard
+                </button>
+            </div>
             <h1 class="text-3xl font-bold text-cdf-deep">I Miei Corsi</h1>
             <p class="text-cdf-slate700 mt-2">Gestisci i tuoi corsi e monitora i progressi</p>
         </div>
@@ -162,8 +174,10 @@
 
 <script setup>
 import { ref, computed } from 'vue';
+import { useRouter } from 'vue-router';
 import AppLayout from '@/components/Layout/AppLayout.vue';
 
+const router = useRouter();
 const activeFilter = ref('all');
 
 const filters = [
@@ -284,5 +298,9 @@ const viewCertificate = (course) => {
 const downloadMaterials = (course) => {
     console.log('Download materials:', course);
     // Download course materials
+};
+
+const goToDashboard = () => {
+    router.push('/dashboard');
 };
 </script>
