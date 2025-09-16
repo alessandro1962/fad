@@ -300,6 +300,7 @@ const finalScore = ref(0)
 const correctAnswers = ref(0)
 const totalQuestions = ref(0)
 const attemptNumber = ref(1)
+const currentAttemptId = ref(null)
 const showDetailedResults = ref(false)
 const timeRemaining = ref(0)
 const timeLimit = ref(0)
@@ -333,7 +334,7 @@ const formatTime = (seconds) => {
   return `${minutes}:${secs.toString().padStart(2, '0')}`
 }
 
-const initializeQuiz = () => {
+const initializeQuiz = async () => {
   quizData.value = props.lesson.payload || {}
   totalQuestions.value = quizData.value.questions?.length || 0
   timeLimit.value = (quizData.value.time_limit || 0) * 60 // Convert to seconds
@@ -372,21 +373,25 @@ const previousQuestion = () => {
 
 const submitQuiz = async () => {
   try {
+    // Format answers for the API
+    const formattedAnswers = quizData.value.questions.map((question, index) => ({
+      question_id: question.id,
+      answer: answers.value[index]
+    }))
+
     const attemptData = {
-      lesson_id: props.lesson.id,
-      answers: answers.value,
-      time_spent: timeLimit.value - timeRemaining.value,
-      submitted_at: new Date().toISOString()
+      attempt_id: currentAttemptId.value || 1, // We'll need to track this
+      answers: formattedAnswers
     }
 
-    const response = await api.post('/v1/quiz-attempts', attemptData)
+    const response = await api.post(`/v1/quizzes/${props.lesson.id}/submit`, attemptData)
     const result = response.data.data
 
     quizCompleted.value = true
     quizPassed.value = result.passed
     finalScore.value = result.score
-    correctAnswers.value = result.correct_answers
-    attemptNumber.value = result.attempt_number
+    correctAnswers.value = result.answers
+    attemptNumber.value = result.attempt_id
 
     emit('quiz-completed', {
       lesson: props.lesson,

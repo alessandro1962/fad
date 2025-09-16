@@ -3,7 +3,8 @@
     <!-- Video Container -->
     <div class="relative bg-black rounded-xl overflow-hidden">
       <!-- Vimeo Player -->
-      <div v-if="videoProvider === 'vimeo'" class="aspect-video">
+      <div v-if="videoProvider === 'vimeo'" class="aspect-video relative">
+        <!-- Vimeo iframe with custom controls -->
         <iframe
           ref="vimeoPlayer"
           :src="vimeoEmbedUrl"
@@ -12,7 +13,56 @@
           allowfullscreen
           class="w-full h-full"
           @load="onPlayerLoad"
+          @click="hideInstructions"
         ></iframe>
+        
+        <!-- Custom Controls Overlay -->
+        <div class="absolute inset-0 pointer-events-none" style="z-index: 1;">
+          <!-- Instructions (Only show initially) -->
+          <div v-if="showInstructions" class="absolute top-4 left-4 bg-black/80 text-white p-4 rounded-lg max-w-sm pointer-events-auto">
+            <div class="flex items-start gap-3">
+              <div class="w-8 h-8 rounded-full bg-cdf-teal/20 flex items-center justify-center flex-shrink-0">
+                <svg class="w-4 h-4 text-cdf-teal" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+              </div>
+              <div>
+                <p class="text-sm font-semibold mb-2">Completa la lezione per continuare</p>
+                <p class="text-xs text-gray-300 mb-2">
+                  Guarda almeno il {{ Math.round(completionThreshold * 100) }}% del video per sbloccare la prossima lezione.
+                </p>
+                <div class="text-xs text-cdf-teal font-semibold mb-3 space-y-1">
+                  <p>▶️ Per far partire il video: clicca sul video</p>
+                  <p>⏸️ Per metterlo in pausa: clicca sul video</p>
+                  <p>▶️ Per farlo ripartire: riclicca sul video</p>
+                </div>
+                <p class="text-xs text-gray-400 mb-3">
+                  I video di Campus Digitale Forma sono realizzati in modo da non poter mandarli avanti meccanicamente.
+                </p>
+                <button
+                  @click="hideInstructions"
+                  class="text-xs bg-cdf-teal text-white px-3 py-1 rounded hover:bg-cdf-deep transition-colors"
+                >
+                  OK, ho capito
+                </button>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Progress Bar (Custom) -->
+          <div class="absolute bottom-0 left-0 right-0 p-4 pointer-events-auto">
+            <div class="w-full bg-white/20 rounded-full h-1 mb-2">
+              <div 
+                class="bg-cdf-teal h-1 rounded-full transition-all duration-300"
+                :style="{ width: `${progressPercentage}%` }"
+              ></div>
+            </div>
+            <div class="flex justify-between text-white text-sm">
+              <span>{{ formatTime(watchedTime) }}</span>
+              <span>{{ formatTime(totalDuration) }}</span>
+            </div>
+          </div>
+        </div>
       </div>
 
       <!-- YouTube Player -->
@@ -54,7 +104,8 @@
         </div>
       </div>
 
-      <!-- Progress Overlay -->
+      <!-- Progress Overlay - Temporarily disabled -->
+      <!-- 
       <div v-if="showProgressOverlay" class="absolute inset-0 bg-black/80 flex items-center justify-center">
         <div class="text-white text-center max-w-md mx-4">
           <div class="w-16 h-16 mx-auto mb-4 rounded-full bg-cdf-teal/20 flex items-center justify-center">
@@ -75,8 +126,15 @@
           <p class="text-sm text-gray-400">
             Progresso: {{ Math.round(progressPercentage) }}% / {{ Math.round(completionThreshold * 100) }}%
           </p>
+          <button
+            @click="hideProgressOverlay"
+            class="mt-4 bg-cdf-teal text-white px-6 py-2 rounded-lg font-semibold hover:bg-cdf-deep transition-colors"
+          >
+            Inizia a Guardare
+          </button>
         </div>
       </div>
+      -->
     </div>
 
     <!-- Video Controls -->
@@ -145,6 +203,7 @@ const youtubePlayer = ref(null)
 const videoElement = ref(null)
 const loading = ref(true)
 const showProgressOverlay = ref(false)
+const showInstructions = ref(true)
 
 // State
 const watchedTime = ref(0)
@@ -173,18 +232,22 @@ const completionThreshold = computed(() => {
 const vimeoEmbedUrl = computed(() => {
   if (videoProvider.value !== 'vimeo' || !videoId.value) return ''
   
-  const params = new URLSearchParams({
-    autoplay: '0', // Disabilitiamo autoplay
-    controls: '1',
-    loop: '0',
-    muted: '0',
-    portrait: '0',
-    title: '0',
-    byline: '0',
-    color: '00A7B7' // Colore brand
-  })
+  // Se è già un URL completo di Vimeo, usalo così com'è
+  if (videoId.value.startsWith('https://player.vimeo.com/video/')) {
+    return videoId.value
+  }
   
-  return `https://player.vimeo.com/video/${videoId.value}?${params.toString()}`
+  // Fallback per ID numerico
+  let actualVideoId = videoId.value
+  if (videoId.value.includes('/video/')) {
+    const match = videoId.value.match(/\/video\/(\d+)/)
+    if (match) {
+      actualVideoId = match[1]
+    }
+  }
+  
+  // URL minimale per evitare errori 403
+  return `https://player.vimeo.com/video/${actualVideoId}`
 })
 
 const youtubeEmbedUrl = computed(() => {
@@ -244,6 +307,20 @@ const onPlayerLoad = () => {
   initializeProgressTracking()
 }
 
+// Vimeo iframe player - no API needed
+
+// Simplified iframe-based Vimeo player
+
+const hideProgressOverlay = () => {
+  showProgressOverlay.value = false
+}
+
+const hideInstructions = () => {
+  showInstructions.value = false
+}
+
+// Metodi rimossi - i controlli sono gestiti direttamente dal video Vimeo
+
 const onVideoLoaded = () => {
   if (videoElement.value) {
     totalDuration.value = videoElement.value.duration
@@ -276,6 +353,9 @@ const onVideoPlay = () => {
   if (videoElement.value && lastPosition.value > 0) {
     videoElement.value.currentTime = lastPosition.value
   }
+  
+  // Hide progress overlay when video starts playing
+  showProgressOverlay.value = false
 }
 
 const initializeProgressTracking = () => {
@@ -289,10 +369,8 @@ const initializeProgressTracking = () => {
   // Set up progress tracking interval
   progressInterval.value = setInterval(saveProgress, 10000) // Save every 10 seconds
 
-  // Check if we should show progress overlay
-  if (props.blockProgression && !isCompleted.value) {
-    showProgressOverlay.value = true
-  }
+  // Don't show progress overlay initially - let user start the video
+  showProgressOverlay.value = false
 }
 
 const saveProgress = async () => {
@@ -303,7 +381,7 @@ const saveProgress = async () => {
       completed: isCompleted.value
     }
 
-    await api.patch(`/v1/progress/${props.lesson.id}`, progressData)
+    await api.patch(`/v1/progress/lesson/${props.lesson.id}`, progressData)
     
     emit('progress-updated', {
       lesson_id: props.lesson.id,
@@ -336,6 +414,12 @@ const markAsCompleted = async () => {
 }
 
 const proceedToNext = () => {
+  // Check if user can proceed
+  if (props.blockProgression && !isCompleted.value && !canProceed.value) {
+    showProgressOverlay.value = true
+    return
+  }
+  
   emit('next-lesson')
 }
 
@@ -360,6 +444,7 @@ onMounted(() => {
   if (videoProvider.value === 'upload' && videoElement.value) {
     onVideoLoaded()
   }
+  // Vimeo iframe player doesn't need initialization
 })
 
 onUnmounted(() => {
@@ -393,5 +478,15 @@ video::-webkit-media-controls-panel {
 
 .progress-fill {
   @apply h-full bg-cdf-teal transition-all duration-300;
+}
+
+/* Hide Vimeo progress bar and disable seeking */
+.video-player-container iframe {
+  pointer-events: auto;
+}
+
+/* Custom Vimeo player styling to disable seeking */
+.video-player-container iframe[src*="vimeo"] {
+  /* This will be handled by Vimeo API parameters */
 }
 </style>

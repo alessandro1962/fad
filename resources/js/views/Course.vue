@@ -1,5 +1,12 @@
 <template>
     <AppLayout>
+        <!-- Loading State -->
+        <div v-if="loading" class="flex justify-center py-12">
+            <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-cdf-teal"></div>
+        </div>
+
+        <!-- Course Content -->
+        <div v-else>
         <!-- Course Header -->
         <div class="bg-gradient-to-r from-cdf-deep to-cdf-teal rounded-3xl p-8 mb-8 text-white">
             <div class="flex items-center justify-between">
@@ -14,7 +21,7 @@
                             {{ course.duration }}
                         </span>
                         <span class="px-3 py-1 bg-white/20 rounded-full text-sm">
-                            {{ course.modules }} moduli
+                            {{ course.modules_count }} moduli
                         </span>
                     </div>
                 </div>
@@ -197,7 +204,7 @@
                         </div>
                         <div class="flex items-center justify-between">
                             <span class="text-cdf-slate700">Moduli:</span>
-                            <span class="font-medium text-cdf-deep">{{ course.modules }}</span>
+                            <span class="font-medium text-cdf-deep">{{ course.modules_count }}</span>
                         </div>
                         <div class="flex items-center justify-between">
                             <span class="text-cdf-slate700">Iniziato:</span>
@@ -239,6 +246,7 @@
                     </div>
                 </div>
             </div>
+        </div>
         </div>
     </AppLayout>
 </template>

@@ -18,7 +18,7 @@ class CourseController extends Controller
         $query = Course::query()
             ->active()
             ->published()
-            ->with(['modules', 'enrollments']);
+            ->with(['modules.lessons', 'enrollments']);
 
         // Filtri
         if ($request->has('search')) {
@@ -97,7 +97,7 @@ class CourseController extends Controller
         $courses = Course::query()
             ->active()
             ->published()
-            ->with(['modules', 'enrollments'])
+            ->with(['modules.lessons', 'enrollments'])
             ->withCount('enrollments')->orderBy('enrollments_count', 'desc')
             ->limit(6)
             ->get();
@@ -124,7 +124,7 @@ class CourseController extends Controller
             ->active()
             ->published()
             ->where('level', $level)
-            ->with(['modules', 'enrollments'])
+            ->with(['modules.lessons', 'enrollments'])
             ->orderBy('published_at', 'desc')
             ->paginate(12);
 
