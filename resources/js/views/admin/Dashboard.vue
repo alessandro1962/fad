@@ -83,9 +83,12 @@
                 <div class="bg-white rounded-2xl shadow-sm border border-cdf-slate200 p-6">
                     <h3 class="font-bold text-cdf-deep mb-4">Azioni Rapide</h3>
                     <div class="space-y-3">
-                        <button class="w-full btn-primary">
-                            Nuovo Corso
-                        </button>
+                        <router-link 
+                            to="/admin/courses"
+                            class="w-full btn-primary block text-center"
+                        >
+                            Gestisci Corsi
+                        </router-link>
                         <button class="w-full btn-secondary">
                             Gestisci Utenti
                         </button>

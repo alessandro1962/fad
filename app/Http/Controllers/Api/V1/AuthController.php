@@ -75,12 +75,7 @@ class AuthController extends Controller
         $user = $request->user();
         
         return response()->json([
-            'data' => [
-                'user' => $user,
-                'learning_level' => $user->learning_level,
-                'total_learning_hours' => $user->total_learning_hours,
-                'has_full_vision_access' => $user->hasFullVisionAccess(),
-            ],
+            'data' => $user,
         ]);
     }
 

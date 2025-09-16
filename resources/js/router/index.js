@@ -71,6 +71,12 @@ const routes = [
         component: () => import('@/views/admin/Dashboard.vue'),
         meta: { requiresAuth: true, requiresAdmin: true }
     },
+    {
+        path: '/admin/courses',
+        name: 'admin-courses',
+        component: () => import('@/views/admin/Courses.vue'),
+        meta: { requiresAuth: true, requiresAdmin: true }
+    },
 ];
 
 const router = createRouter({
@@ -85,7 +91,7 @@ router.beforeEach((to, from, next) => {
     if (to.meta.requiresAuth && !authStore.isAuthenticated) {
         next('/login');
     } else if (to.meta.guest && authStore.isAuthenticated) {
-        next('/dashboard');
+        next(authStore.isAdmin ? '/admin' : '/dashboard');
     } else if (to.meta.requiresAdmin && !authStore.isAdmin) {
         next('/dashboard');
     } else {

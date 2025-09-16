@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\V1\EnrollmentController;
 use App\Http\Controllers\Api\V1\NotificationController;
 use App\Http\Controllers\Api\V1\ProgressController;
 use App\Http\Controllers\Api\V1\QuizController;
+use App\Http\Controllers\Admin\CourseController as AdminCourseController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -74,4 +75,13 @@ Route::prefix('v1')->group(function () {
         Route::patch('/notifications/mark-all-read', [NotificationController::class, 'markAllAsRead']);
         Route::delete('/notifications/{notificationId}', [NotificationController::class, 'destroy']);
     });
+});
+
+// Admin routes (protected)
+Route::middleware(['auth:sanctum'])->prefix('admin')->group(function () {
+    // Course management
+    Route::apiResource('courses', AdminCourseController::class);
+    Route::patch('courses/{course}/toggle-status', [AdminCourseController::class, 'toggleStatus']);
+    Route::patch('courses/{course}/toggle-publish', [AdminCourseController::class, 'togglePublish']);
+    Route::get('courses/{course}/statistics', [AdminCourseController::class, 'statistics']);
 });

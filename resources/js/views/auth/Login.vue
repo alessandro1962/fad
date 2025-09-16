@@ -147,7 +147,7 @@
 </template>
 
 <script setup>
-import { ref } from 'vue';
+import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useAuthStore } from '@/stores/auth';
 
@@ -162,13 +162,36 @@ const form = ref({
 
 const errorMessage = ref('');
 
+// Carica le credenziali salvate al mount
+onMounted(() => {
+    const rememberedEmail = localStorage.getItem('rememberedEmail');
+    const rememberedPassword = localStorage.getItem('rememberedPassword');
+    
+    if (rememberedEmail && rememberedPassword) {
+        form.value.email = rememberedEmail;
+        form.value.password = rememberedPassword;
+        form.value.remember = true;
+    }
+});
+
 const handleLogin = async () => {
     errorMessage.value = '';
     
     const result = await authStore.login(form.value);
     
     if (result.success) {
-        router.push('/dashboard');
+        // Salva le credenziali se "ricordami" è selezionato
+        if (form.value.remember) {
+            localStorage.setItem('rememberedEmail', form.value.email);
+            localStorage.setItem('rememberedPassword', form.value.password);
+        } else {
+            localStorage.removeItem('rememberedEmail');
+            localStorage.removeItem('rememberedPassword');
+        }
+        
+        // Reindirizza admin alla dashboard admin, utenti normali alla dashboard utente
+        const redirectPath = authStore.isAdmin ? '/admin' : '/dashboard';
+        router.push(redirectPath);
     } else {
         errorMessage.value = result.message;
     }
