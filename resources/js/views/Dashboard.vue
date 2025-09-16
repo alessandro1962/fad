@@ -100,7 +100,10 @@
                                     <span>⏱️ {{ course.duration }}</span>
                                     <span>📚 {{ course.modules }} moduli</span>
                                 </div>
-                                <button :class="`px-4 py-2 text-white rounded-lg text-sm font-medium transition-colors duration-200 ${getStatusClass(course.status)}`">
+                                <button 
+                                    :class="`px-4 py-2 text-white rounded-lg text-sm font-medium transition-colors duration-200 ${getStatusClass(course.status)}`"
+                                    @click="startCourse(course)"
+                                >
                                     {{ getStatusText(course.status) }}
                                 </button>
                             </div>
@@ -248,12 +251,14 @@
 
 <script setup>
 import { ref, onMounted } from 'vue';
+import { useRouter } from 'vue-router';
 import AppLayout from '@/components/Layout/AppLayout.vue';
 import StatCard from '@/components/Dashboard/StatCard.vue';
 import { useAuthStore } from '@/stores/auth';
 import api from '@/api';
 
 const authStore = useAuthStore();
+const router = useRouter();
 const loading = ref(false);
 const courses = ref([]);
 const stats = ref({
@@ -335,6 +340,10 @@ const getStatusClass = (status) => {
         'not-started': 'bg-cdf-deep hover:bg-cdf-deep/90'
     };
     return classes[status] || 'bg-cdf-deep hover:bg-cdf-deep/90';
+};
+
+const startCourse = (course) => {
+    router.push(`/corso/${course.id}`);
 };
 
 // Load data when component mounts

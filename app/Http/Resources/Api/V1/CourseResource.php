@@ -35,6 +35,29 @@ class CourseResource extends JsonResource
             'updated_at' => $this->updated_at->toISOString(),
             
             // Relazioni
+            'modules' => $this->whenLoaded('modules', fn() => $this->modules->map(function ($module) {
+                return [
+                    'id' => $module->id,
+                    'title' => $module->title,
+                    'description' => $module->description,
+                    'order' => $module->order,
+                    'duration_minutes' => $module->duration_minutes,
+                    'is_active' => $module->is_active,
+                    'lessons' => $module->relationLoaded('lessons') ? $module->lessons->map(function ($lesson) {
+                        return [
+                            'id' => $lesson->id,
+                            'title' => $lesson->title,
+                            'description' => $lesson->description,
+                            'type' => $lesson->type,
+                            'order' => $lesson->order,
+                            'duration_minutes' => $lesson->duration_minutes,
+                            'is_active' => $lesson->is_active,
+                            'payload' => $lesson->payload,
+                            'completed' => false, // This will be set based on user progress
+                        ];
+                    }) : []
+                ];
+            })),
             'modules_count' => $this->whenLoaded('modules', fn() => $this->modules->count()),
             'enrollments_count' => $this->whenLoaded('enrollments', fn() => $this->enrollments->count()),
             

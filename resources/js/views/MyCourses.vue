@@ -256,8 +256,7 @@ const getStatusLabel = (status) => {
 };
 
 const continueCourse = (course) => {
-    console.log('Continue course:', course);
-    // Navigate to course player
+    router.push(`/corso/${course.id}`);
 };
 
 const viewCertificate = (course) => {

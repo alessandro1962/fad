@@ -324,7 +324,7 @@ const loadCurrentLesson = async () => {
 
 const loadLessonProgress = async () => {
     try {
-        const response = await api.get(`/v1/progress/${currentLesson.value.id}`);
+        const response = await api.get(`/v1/progress/lesson/${currentLesson.value.id}`);
         currentLessonProgress.value = response.data.data;
     } catch (error) {
         console.error('Errore nel caricamento progresso lezione:', error);
@@ -401,7 +401,7 @@ const loadNextLesson = async () => {
 
 const markLessonCompleted = async () => {
     try {
-        await api.patch(`/v1/progress/${currentLesson.value.id}`, {
+        await api.patch(`/v1/progress/lesson/${currentLesson.value.id}`, {
             completed: true,
             seconds_watched: currentLesson.value.duration_minutes * 60 || 0
         });
