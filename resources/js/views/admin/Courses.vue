@@ -329,18 +329,9 @@ const loadCourses = async (page = 1) => {
       )
     })
 
-    const response = await fetch(`/api/admin/courses?${params}`, {
-      headers: {
-        'Accept': 'application/json',
-        'Authorization': `Bearer ${localStorage.getItem('token')}`
-      }
-    })
-
-    if (!response.ok) throw new Error('Errore nel caricamento dei corsi')
-
-    const data = await response.json()
-    courses.value = data.data
-    pagination.value = data.meta
+    const response = await api.get(`/v1/admin/courses?${params}`)
+    courses.value = response.data.data
+    pagination.value = response.data.meta
   } catch (error) {
     console.error('Errore:', error)
     // Handle error
@@ -373,17 +364,7 @@ const editCourse = (course) => {
 
 const toggleCourseStatus = async (course) => {
   try {
-    const response = await fetch(`/api/admin/courses/${course.id}/toggle-status`, {
-      method: 'PATCH',
-      headers: {
-        'Accept': 'application/json',
-        'Authorization': `Bearer ${localStorage.getItem('token')}`
-      }
-    })
-
-    if (!response.ok) throw new Error('Errore nell\'aggiornamento')
-
-    const data = await response.json()
+    const response = await api.patch(`/v1/admin/courses/${course.id}/toggle-status`)
     course.is_active = !course.is_active
     // Show success message
   } catch (error) {
@@ -394,17 +375,7 @@ const toggleCourseStatus = async (course) => {
 
 const toggleCoursePublish = async (course) => {
   try {
-    const response = await fetch(`/api/admin/courses/${course.id}/toggle-publish`, {
-      method: 'PATCH',
-      headers: {
-        'Accept': 'application/json',
-        'Authorization': `Bearer ${localStorage.getItem('token')}`
-      }
-    })
-
-    if (!response.ok) throw new Error('Errore nell\'aggiornamento')
-
-    const data = await response.json()
+    const response = await api.patch(`/v1/admin/courses/${course.id}/toggle-publish`)
     course.published_at = course.published_at ? null : new Date().toISOString()
     // Show success message
   } catch (error) {
@@ -424,19 +395,7 @@ const deleteCourse = async (course) => {
   }
 
   try {
-    const response = await fetch(`/api/admin/courses/${course.id}`, {
-      method: 'DELETE',
-      headers: {
-        'Accept': 'application/json',
-        'Authorization': `Bearer ${localStorage.getItem('token')}`
-      }
-    })
-
-    if (!response.ok) {
-      const error = await response.json()
-      throw new Error(error.message || 'Errore nell\'eliminazione')
-    }
-
+    await api.delete(`/v1/admin/courses/${course.id}`)
     // Remove from list
     courses.value = courses.value.filter(c => c.id !== course.id)
     // Show success message
