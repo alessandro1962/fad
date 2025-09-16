@@ -253,6 +253,15 @@
                   <td class="py-4 px-4">
                     <div class="flex items-center justify-end gap-2">
                       <button
+                        @click="enrollUser(user)"
+                        class="p-2 text-cdf-teal hover:text-cdf-deep hover:bg-cdf-teal/10 rounded-lg transition-colors"
+                        title="Iscrivi a Corso"
+                      >
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
+                        </svg>
+                      </button>
+                      <button
                         @click="editUser(user)"
                         class="p-2 text-cdf-slate600 hover:text-cdf-deep hover:bg-cdf-slate100 rounded-lg transition-colors"
                         title="Modifica Utente"
@@ -444,6 +453,172 @@
         </div>
       </div>
     </div>
+
+    <!-- Enrollment Modal -->
+    <div v-if="showEnrollmentModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+      <div class="bg-white rounded-xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+        <!-- Header -->
+        <div class="flex items-center justify-between p-6 border-b border-cdf-slate200">
+          <h2 class="text-xl font-bold text-cdf-deep">Iscrivi Utente a Corso</h2>
+          <button
+            @click="showEnrollmentModal = false"
+            class="p-2 text-cdf-slate400 hover:text-cdf-slate600 hover:bg-cdf-slate200 rounded-lg transition-all"
+          >
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+            </svg>
+          </button>
+        </div>
+
+        <!-- Content -->
+        <div class="p-6">
+          <!-- User Info -->
+          <div class="mb-6 p-4 bg-cdf-sand rounded-xl">
+            <h3 class="font-semibold text-cdf-deep mb-2">Utente Selezionato</h3>
+            <div class="flex items-center space-x-3">
+              <div class="w-10 h-10 bg-cdf-teal/10 rounded-full flex items-center justify-center">
+                <span class="text-cdf-teal font-semibold text-sm">
+                  {{ selectedUserForEnrollment?.first_name?.[0] || selectedUserForEnrollment?.name?.[0] || 'U' }}
+                </span>
+              </div>
+              <div>
+                <p class="font-medium text-cdf-deep">{{ selectedUserForEnrollment?.name }}</p>
+                <p class="text-sm text-cdf-slate700">{{ selectedUserForEnrollment?.email }}</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Course Selection -->
+          <div class="mb-6">
+            <label class="block text-sm font-medium text-cdf-deep mb-2">Seleziona Corso</label>
+            <div class="space-y-3 max-h-60 overflow-y-auto">
+              <div
+                v-for="course in availableCourses"
+                :key="course.id"
+                class="flex items-center p-3 border border-cdf-slate200 rounded-lg hover:border-cdf-teal/50 transition-colors cursor-pointer"
+                :class="{ 'border-cdf-teal bg-cdf-teal/10': enrollmentForm.course_id === course.id }"
+                @click="enrollmentForm.course_id = course.id"
+              >
+                <input
+                  type="radio"
+                  :value="course.id"
+                  v-model="enrollmentForm.course_id"
+                  class="sr-only"
+                />
+                <div class="flex items-center w-full">
+                  <div class="w-6 h-6 rounded-full border-2 mr-4 flex items-center justify-center"
+                       :class="enrollmentForm.course_id === course.id ? 'border-cdf-teal bg-cdf-teal' : 'border-cdf-slate300'">
+                    <div v-if="enrollmentForm.course_id === course.id" class="w-3 h-3 rounded-full bg-white"></div>
+                  </div>
+                  <div class="flex-1">
+                    <h4 class="font-semibold text-cdf-deep">{{ course.title }}</h4>
+                    <p class="text-sm text-cdf-slate700">{{ course.description }}</p>
+                    <div class="flex items-center space-x-4 mt-1">
+                      <span class="text-xs text-cdf-slate600">{{ course.level }}</span>
+                      <span class="text-xs text-cdf-slate600">{{ course.duration_minutes }} min</span>
+                      <span class="text-xs text-cdf-slate600">{{ course.modules_count }} moduli</span>
+                    </div>
+                  </div>
+                  <div class="text-right">
+                    <div class="text-sm font-semibold text-cdf-deep">{{ formatPrice(course.price_cents) }}</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Enrollment Options -->
+          <div class="mb-6">
+            <h3 class="font-semibold text-cdf-deep mb-4">Opzioni Iscrizione</h3>
+            <div class="space-y-4">
+              <div>
+                <label class="block text-sm font-medium text-cdf-deep mb-2">Tipo Iscrizione</label>
+                <select
+                  v-model="enrollmentForm.source"
+                  class="w-full px-3 py-2 border border-cdf-slate200 rounded-lg focus:ring-2 focus:ring-cdf-teal focus:border-transparent"
+                >
+                  <option value="assign">Assegnazione Diretta</option>
+                  <option value="purchase">Acquisto</option>
+                  <option value="full_vision">Full Vision</option>
+                </select>
+              </div>
+
+              <div v-if="enrollmentForm.source === 'purchase'">
+                <label class="block text-sm font-medium text-cdf-deep mb-2">Metodo di Pagamento</label>
+                <select
+                  v-model="enrollmentForm.payment_method"
+                  class="w-full px-3 py-2 border border-cdf-slate200 rounded-lg focus:ring-2 focus:ring-cdf-teal focus:border-transparent"
+                >
+                  <option value="manual">Pagamento Manuale</option>
+                  <option value="stripe">Stripe</option>
+                  <option value="bank_transfer">Bonifico Bancario</option>
+                </select>
+              </div>
+
+              <div>
+                <label class="block text-sm font-medium text-cdf-deep mb-2">Data Inizio</label>
+                <input
+                  v-model="enrollmentForm.start_date"
+                  type="date"
+                  class="w-full px-3 py-2 border border-cdf-slate200 rounded-lg focus:ring-2 focus:ring-cdf-teal focus:border-transparent"
+                />
+              </div>
+
+              <div>
+                <label class="block text-sm font-medium text-cdf-deep mb-2">Data Scadenza (opzionale)</label>
+                <input
+                  v-model="enrollmentForm.expiry_date"
+                  type="date"
+                  class="w-full px-3 py-2 border border-cdf-slate200 rounded-lg focus:ring-2 focus:ring-cdf-teal focus:border-transparent"
+                />
+              </div>
+
+              <div>
+                <label class="flex items-center space-x-2">
+                  <input
+                    v-model="enrollmentForm.send_notification"
+                    type="checkbox"
+                    class="rounded border-cdf-slate200 text-cdf-teal focus:ring-cdf-teal"
+                  />
+                  <span class="text-sm text-cdf-deep">Invia notifica email all'utente</span>
+                </label>
+              </div>
+            </div>
+          </div>
+
+          <!-- Actions -->
+          <div class="flex justify-end gap-3">
+            <button
+              @click="showEnrollmentModal = false"
+              class="px-4 py-2 text-cdf-slate600 border border-cdf-slate200 rounded-lg hover:bg-cdf-slate50 transition-colors"
+            >
+              Annulla
+            </button>
+            <button
+              @click="submitEnrollment"
+              :disabled="!enrollmentForm.course_id || enrolling"
+              class="px-4 py-2 bg-cdf-teal text-white rounded-lg hover:bg-cdf-deep transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <span v-if="enrolling" class="flex items-center">
+                <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                  <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                Iscrizione...
+              </span>
+              <span v-else>Iscrivi Utente</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Create User Modal -->
+    <CreateUserModal
+      :is-open="showCreateModal"
+      @close="showCreateModal = false"
+      @success="onUserCreated"
+    />
   </div>
 </template>
 
@@ -452,6 +627,7 @@ import { ref, reactive, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import api from '@/api'
 import UserModal from '@/components/Admin/UserModal.vue'
+import CreateUserModal from '@/components/Admin/CreateUserModal.vue'
 
 const router = useRouter()
 
@@ -466,6 +642,19 @@ const showImportModal = ref(false)
 const selectedFile = ref(null)
 const importing = ref(false)
 const importResults = ref(null)
+const showEnrollmentModal = ref(false)
+const selectedUserForEnrollment = ref(null)
+const availableCourses = ref([])
+const enrolling = ref(false)
+const showCreateModal = ref(false)
+const enrollmentForm = reactive({
+  course_id: null,
+  source: 'assign',
+  payment_method: 'manual',
+  start_date: new Date().toISOString().split('T')[0],
+  expiry_date: '',
+  send_notification: true
+})
 
 // Filters
 const filters = reactive({
@@ -662,6 +851,80 @@ const formatFileSize = (bytes) => {
   const sizes = ['Bytes', 'KB', 'MB', 'GB']
   const i = Math.floor(Math.log(bytes) / Math.log(k))
   return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
+}
+
+const formatPrice = (priceCents) => {
+  return new Intl.NumberFormat('it-IT', {
+    style: 'currency',
+    currency: 'EUR'
+  }).format(priceCents / 100)
+}
+
+const enrollUser = async (user) => {
+  selectedUserForEnrollment.value = user
+  showEnrollmentModal.value = true
+  
+  // Reset form
+  enrollmentForm.course_id = null
+  enrollmentForm.source = 'assign'
+  enrollmentForm.payment_method = 'manual'
+  enrollmentForm.start_date = new Date().toISOString().split('T')[0]
+  enrollmentForm.expiry_date = ''
+  enrollmentForm.send_notification = true
+  
+  // Load available courses
+  await loadAvailableCourses()
+}
+
+const loadAvailableCourses = async () => {
+  try {
+    const response = await api.get('/v1/admin/courses')
+    availableCourses.value = response.data.data
+  } catch (error) {
+    console.error('Errore nel caricamento corsi:', error)
+  }
+}
+
+const submitEnrollment = async () => {
+  if (!enrollmentForm.course_id) {
+    alert('Seleziona un corso')
+    return
+  }
+  
+  try {
+    enrolling.value = true
+    
+    const enrollmentData = {
+      user_id: selectedUserForEnrollment.value.id,
+      course_id: enrollmentForm.course_id,
+      source: enrollmentForm.source,
+      payment_method: enrollmentForm.payment_method,
+      start_date: enrollmentForm.start_date,
+      expiry_date: enrollmentForm.expiry_date || null,
+      send_notification: enrollmentForm.send_notification
+    }
+    
+    await api.post('/v1/admin/enrollments', enrollmentData)
+    
+    // Close modal and refresh data
+    showEnrollmentModal.value = false
+    await loadUsers(pagination.value.current_page)
+    await loadStatistics()
+    
+    alert('Utente iscritto al corso con successo!')
+  } catch (error) {
+    console.error('Errore nell\'iscrizione:', error)
+    alert('Errore nell\'iscrizione dell\'utente al corso')
+  } finally {
+    enrolling.value = false
+  }
+}
+
+const onUserCreated = async (user) => {
+  // Reload users list
+  await loadUsers(pagination.value.current_page)
+  await loadStatistics()
+  alert('Utente creato con successo!')
 }
 
 const formatDate = (dateString) => {

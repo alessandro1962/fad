@@ -11,6 +11,7 @@ use App\Http\Controllers\Api\V1\ProgressController;
 use App\Http\Controllers\Api\V1\QuizController;
 use App\Http\Controllers\Admin\CourseController as AdminCourseController;
 use App\Http\Controllers\Admin\AnalyticsController;
+use App\Http\Controllers\Admin\EnrollmentController as AdminEnrollmentController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -104,16 +105,19 @@ Route::prefix('v1')->group(function () {
             Route::post('lessons/reorder', [App\Http\Controllers\Admin\LessonController::class, 'reorder']);
             
             // User management
-            Route::apiResource('users', App\Http\Controllers\Admin\UserController::class);
-            Route::patch('users/{user}/toggle-admin', [App\Http\Controllers\Admin\UserController::class, 'toggleAdmin']);
             Route::get('users/statistics', [App\Http\Controllers\Admin\UserController::class, 'statistics']);
             Route::post('users/import-csv', [App\Http\Controllers\Admin\UserController::class, 'importCsv']);
             Route::get('users/download-template', [App\Http\Controllers\Admin\UserController::class, 'downloadTemplate']);
+            Route::apiResource('users', App\Http\Controllers\Admin\UserController::class);
+            Route::patch('users/{user}/toggle-admin', [App\Http\Controllers\Admin\UserController::class, 'toggleAdmin']);
             
-            // Analytics
-            Route::get('analytics', [AnalyticsController::class, 'index']);
-            Route::get('analytics/export', [AnalyticsController::class, 'export']);
-            Route::get('analytics/engagement', [AnalyticsController::class, 'engagement']);
+                // Analytics
+                Route::get('analytics', [AnalyticsController::class, 'index']);
+                Route::get('analytics/export', [AnalyticsController::class, 'export']);
+                Route::get('analytics/engagement', [AnalyticsController::class, 'engagement']);
+
+                // Admin Enrollments
+                Route::post('enrollments', [AdminEnrollmentController::class, 'store']);
         });
     });
 });
