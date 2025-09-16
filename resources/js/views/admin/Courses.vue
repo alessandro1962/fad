@@ -285,6 +285,7 @@
       :is-open="showModuleModal"
       :course="selectedCourse"
       @close="showModuleModal = false"
+      @modules-updated="onModulesUpdated"
     />
   </div>
 </template>
@@ -420,6 +421,11 @@ const onCourseSaved = () => {
 const manageCourseModules = (course) => {
   selectedCourse.value = course
   showModuleModal.value = true
+}
+
+const onModulesUpdated = () => {
+  // Ricarica la lista dei corsi per aggiornare il conteggio moduli
+  loadCourses(pagination.value.current_page)
 }
 
 // Helper methods

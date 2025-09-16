@@ -217,7 +217,7 @@ const props = defineProps({
   }
 })
 
-const emit = defineEmits(['close'])
+const emit = defineEmits(['close', 'modules-updated'])
 
 // State
 const modules = ref([])
@@ -240,6 +240,7 @@ const isOpen = computed(() => props.isOpen)
 // Methods
 const closeModal = () => {
   emit('close')
+  emit('modules-updated') // Notifica che i moduli sono stati aggiornati
   showAddModuleForm.value = false
   showLessonModal.value = false
   selectedLesson.value = null
