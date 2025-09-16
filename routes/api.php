@@ -74,14 +74,26 @@ Route::prefix('v1')->group(function () {
         Route::patch('/notifications/{notificationId}/read', [NotificationController::class, 'markAsRead']);
         Route::patch('/notifications/mark-all-read', [NotificationController::class, 'markAllAsRead']);
         Route::delete('/notifications/{notificationId}', [NotificationController::class, 'destroy']);
+        
+        // Admin routes (protected)
+        Route::prefix('admin')->group(function () {
+            // Course management
+            Route::apiResource('courses', AdminCourseController::class);
+            Route::patch('courses/{course}/toggle-status', [AdminCourseController::class, 'toggleStatus']);
+            Route::patch('courses/{course}/toggle-publish', [AdminCourseController::class, 'togglePublish']);
+            Route::get('courses/{course}/statistics', [AdminCourseController::class, 'statistics']);
+            
+            // Module management
+            Route::get('courses/{course}/modules', [App\Http\Controllers\Admin\ModuleController::class, 'index']);
+            Route::post('courses/{course}/modules', [App\Http\Controllers\Admin\ModuleController::class, 'store']);
+            Route::apiResource('modules', App\Http\Controllers\Admin\ModuleController::class)->except(['index', 'store']);
+            Route::post('modules/reorder', [App\Http\Controllers\Admin\ModuleController::class, 'reorder']);
+            
+            // Lesson management
+            Route::get('modules/{module}/lessons', [App\Http\Controllers\Admin\LessonController::class, 'index']);
+            Route::apiResource('lessons', App\Http\Controllers\Admin\LessonController::class);
+            Route::post('lessons/reorder', [App\Http\Controllers\Admin\LessonController::class, 'reorder']);
+        });
     });
 });
 
-// Admin routes (protected)
-Route::middleware(['auth:sanctum'])->prefix('admin')->group(function () {
-    // Course management
-    Route::apiResource('courses', AdminCourseController::class);
-    Route::patch('courses/{course}/toggle-status', [AdminCourseController::class, 'toggleStatus']);
-    Route::patch('courses/{course}/toggle-publish', [AdminCourseController::class, 'togglePublish']);
-    Route::get('courses/{course}/statistics', [AdminCourseController::class, 'statistics']);
-});

@@ -278,6 +278,14 @@
       :course="selectedCourse"
       @close="showStatsModal = false"
     />
+
+    <!-- Module Management Modal -->
+    <ModuleManagementModal
+      v-if="showModuleModal"
+      :is-open="showModuleModal"
+      :course="selectedCourse"
+      @close="showModuleModal = false"
+    />
   </div>
 </template>
 
@@ -286,6 +294,7 @@ import { ref, reactive, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import CourseModal from '../../components/Admin/CourseModal.vue'
 import CourseStatsModal from '../../components/Admin/CourseStatsModal.vue'
+import ModuleManagementModal from '../../components/Admin/ModuleManagementModal.vue'
 
 const router = useRouter()
 
@@ -296,6 +305,7 @@ const pagination = ref({})
 const showCreateModal = ref(false)
 const showEditModal = ref(false)
 const showStatsModal = ref(false)
+const showModuleModal = ref(false)
 const editingCourse = ref(null)
 const selectedCourse = ref(null)
 
@@ -445,6 +455,11 @@ const closeModal = () => {
 const onCourseSaved = () => {
   closeModal()
   loadCourses(pagination.value.current_page)
+}
+
+const manageCourseModules = (course) => {
+  selectedCourse.value = course
+  showModuleModal.value = true
 }
 
 // Helper methods
