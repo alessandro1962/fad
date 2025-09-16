@@ -36,6 +36,7 @@ class User extends Authenticatable
         'privacy_consent',
         'last_login_at',
         'email_verified_at',
+        'is_admin',
     ];
 
     /**
@@ -61,6 +62,7 @@ class User extends Authenticatable
             'password' => 'hashed',
             'marketing_consent' => 'boolean',
             'privacy_consent' => 'boolean',
+            'is_admin' => 'boolean',
         ];
     }
 
@@ -203,5 +205,21 @@ class User extends Authenticatable
     public function scopeActive($query, $days = 30)
     {
         return $query->where('last_login_at', '>=', now()->subDays($days));
+    }
+
+    /**
+     * Check if user is admin.
+     */
+    public function isAdmin(): bool
+    {
+        return $this->is_admin === true;
+    }
+
+    /**
+     * Scope a query to only include admin users.
+     */
+    public function scopeAdmin($query)
+    {
+        return $query->where('is_admin', true);
     }
 }

@@ -89,9 +89,12 @@
                         >
                             Gestisci Corsi
                         </router-link>
-                        <button class="w-full btn-secondary">
+                        <router-link 
+                            to="/admin/users"
+                            class="w-full btn-secondary block text-center"
+                        >
                             Gestisci Utenti
-                        </button>
+                        </router-link>
                         <button class="w-full btn-secondary">
                             Report Analytics
                         </button>

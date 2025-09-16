@@ -93,6 +93,11 @@ Route::prefix('v1')->group(function () {
             Route::get('modules/{module}/lessons', [App\Http\Controllers\Admin\LessonController::class, 'index']);
             Route::apiResource('lessons', App\Http\Controllers\Admin\LessonController::class);
             Route::post('lessons/reorder', [App\Http\Controllers\Admin\LessonController::class, 'reorder']);
+            
+            // User management
+            Route::apiResource('users', App\Http\Controllers\Admin\UserController::class);
+            Route::patch('users/{user}/toggle-admin', [App\Http\Controllers\Admin\UserController::class, 'toggleAdmin']);
+            Route::get('users/statistics', [App\Http\Controllers\Admin\UserController::class, 'statistics']);
         });
     });
 });
