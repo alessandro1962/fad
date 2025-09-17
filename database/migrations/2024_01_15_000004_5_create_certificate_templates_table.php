@@ -16,6 +16,7 @@ return new class extends Migration
             $table->string('name');
             $table->text('description')->nullable();
             $table->string('template_type')->default('course'); // course, track, custom
+            $table->foreignId('course_id')->nullable()->constrained()->onDelete('cascade'); // Corso associato
             $table->longText('html_template')->nullable(); // Template HTML per il PDF
             $table->json('settings')->nullable(); // Configurazioni (colori, font, layout, etc.)
             $table->string('background_image')->nullable(); // Immagine di sfondo

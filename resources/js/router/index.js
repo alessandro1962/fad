@@ -33,6 +33,12 @@ const routes = [
     {
         path: '/corso/:id',
         name: 'course',
+        component: () => import('@/views/CoursePublic.vue'),
+        meta: { requiresAuth: false }
+    },
+    {
+        path: '/corso-autenticato/:id',
+        name: 'course-authenticated',
         component: () => import('@/views/Course.vue'),
         meta: { requiresAuth: true }
     },
@@ -71,6 +77,18 @@ const routes = [
         component: () => import('@/views/Support.vue'),
     },
     {
+        path: '/gamification',
+        name: 'gamification',
+        component: () => import('@/components/Gamification/GamificationDashboard.vue'),
+        meta: { requiresAuth: true }
+    },
+    {
+        path: '/badges',
+        name: 'badges',
+        component: () => import('@/components/Gamification/BadgeCollection.vue'),
+        meta: { requiresAuth: true }
+    },
+    {
         path: '/admin',
         name: 'admin',
         component: () => import('@/views/admin/Dashboard.vue'),
@@ -98,6 +116,12 @@ const routes = [
         path: '/admin/settings',
         name: 'admin-settings',
         component: () => import('@/views/admin/Settings.vue'),
+        meta: { requiresAuth: true, requiresAdmin: true }
+    },
+    {
+        path: '/admin/certificate-templates',
+        name: 'admin-certificate-templates',
+        component: () => import('@/views/admin/CertificateTemplates.vue'),
         meta: { requiresAuth: true, requiresAdmin: true }
     },
 ];

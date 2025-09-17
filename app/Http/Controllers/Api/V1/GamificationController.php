@@ -68,7 +68,15 @@ class GamificationController extends Controller
         foreach ($availableBadges as $badge) {
             $progress = $this->calculateBadgeProgress($user, $badge);
             
-            if ($progress['current'] > 0) {
+            // Skip badges with invalid targets
+            if ($progress['target'] <= 0) {
+                continue;
+            }
+            
+            $progressPercentage = min(100, ($progress['current'] / $progress['target']) * 100);
+            
+            // Only include badges that are not yet completed (progress < 100%)
+            if ($progress['current'] > 0 && $progressPercentage < 100) {
                 $achievements[] = [
                     'id' => $badge->id,
                     'name' => $badge->name,
@@ -76,7 +84,7 @@ class GamificationController extends Controller
                     'color' => $badge->color,
                     'current' => $progress['current'],
                     'target' => $progress['target'],
-                    'progress' => min(100, ($progress['current'] / $progress['target']) * 100),
+                    'progress' => $progressPercentage,
                 ];
             }
         }
@@ -179,11 +187,14 @@ class GamificationController extends Controller
             5 => ['name' => 'Maestro', 'description' => 'Hai raggiunto la padronanza'],
         ];
 
+        // More realistic level thresholds for 100+ courses platform
+        $levelThresholds = [0, 500, 1500, 3000, 5000];
+
         $level = 1;
-        $pointsPerLevel = 100;
-        
-        while ($totalPoints >= $level * $pointsPerLevel && $level < 5) {
-            $level++;
+        for ($i = 1; $i < count($levelThresholds); $i++) {
+            if ($totalPoints >= $levelThresholds[$i]) {
+                $level = $i + 1;
+            }
         }
 
         return [
@@ -200,19 +211,19 @@ class GamificationController extends Controller
     {
         $points = 0;
         
-        // Points for completed courses (50 points each)
-        $points += $user->enrollments()->completed()->count() * 50;
+        // Points for completed courses (200 points each - main source)
+        $points += $user->enrollments()->completed()->count() * 200;
         
-        // Points for completed lessons (10 points each)
-        $points += $user->progress()->completed()->count() * 10;
+        // Points for completed lessons (5 points each)
+        $points += $user->progress()->completed()->count() * 5;
         
-        // Points for passed quizzes (20 points each)
-        $points += $user->attempts()->passed()->distinct('quiz_id')->count() * 20;
+        // Points for passed quizzes (15 points each)
+        $points += $user->attempts()->passed()->distinct('quiz_id')->count() * 15;
         
-        // Points for learning hours (1 point per hour)
-        $points += round($user->progress()->sum('seconds_watched') / 3600);
+        // Points for learning hours (10 points per hour)
+        $points += round($user->progress()->sum('seconds_watched') / 3600) * 10;
         
-        // Points for badges (varies by badge)
+        // Points for badges (bonus points - reduced)
         $points += $user->badges()->sum('points') ?? 0;
         
         return $points;
@@ -225,9 +236,11 @@ class GamificationController extends Controller
     {
         $totalPoints = $this->calculateTotalPoints($user);
         $level = $this->calculateUserLevel($user)['level'];
-        $pointsPerLevel = 100;
         
-        return $totalPoints - (($level - 1) * $pointsPerLevel);
+        $levelThresholds = [0, 500, 1500, 3000, 5000];
+        $currentLevelStart = $levelThresholds[$level - 1] ?? 0;
+        
+        return $totalPoints - $currentLevelStart;
     }
 
     /**
@@ -235,7 +248,17 @@ class GamificationController extends Controller
      */
     private function calculateNextLevelPoints(User $user): int
     {
-        return 100; // Fixed points per level
+        $level = $this->calculateUserLevel($user)['level'];
+        $levelThresholds = [0, 500, 1500, 3000, 5000];
+        
+        if ($level >= 5) {
+            return 0; // Max level reached
+        }
+        
+        $nextLevelStart = $levelThresholds[$level] ?? 0;
+        $currentLevelStart = $levelThresholds[$level - 1] ?? 0;
+        
+        return $nextLevelStart - $currentLevelStart;
     }
 
     /**
@@ -243,10 +266,17 @@ class GamificationController extends Controller
      */
     private function calculatePointsToNextLevel(User $user): int
     {
-        $currentLevelPoints = $this->calculateCurrentLevelPoints($user);
-        $nextLevelPoints = $this->calculateNextLevelPoints($user);
+        $totalPoints = $this->calculateTotalPoints($user);
+        $level = $this->calculateUserLevel($user)['level'];
+        $levelThresholds = [0, 500, 1500, 3000, 5000];
         
-        return max(0, $nextLevelPoints - $currentLevelPoints);
+        if ($level >= 5) {
+            return 0; // Max level reached
+        }
+        
+        $nextLevelStart = $levelThresholds[$level] ?? 0;
+        
+        return max(0, $nextLevelStart - $totalPoints);
     }
 
     /**

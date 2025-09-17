@@ -193,8 +193,7 @@ class LessonController extends Controller
             'settings' => [
                 'passing_score' => $payload['passing_score'] ?? 70,
                 'max_attempts' => $payload['max_attempts'] ?? 3,
-                'time_limit_minutes' => $payload['time_limit'] ?? 0,
-                'block_progression' => $payload['block_progression'] ?? true,
+                'block_progression' => $payload['block_progression'] ?? true
             ],
             'passing_score' => $payload['passing_score'] ?? 70,
             'max_attempts' => $payload['max_attempts'] ?? 3,
@@ -239,8 +238,7 @@ class LessonController extends Controller
             'settings' => [
                 'passing_score' => $payload['passing_score'] ?? 70,
                 'max_attempts' => $payload['max_attempts'] ?? 3,
-                'time_limit_minutes' => $payload['time_limit'] ?? 0,
-                'block_progression' => $payload['block_progression'] ?? true,
+                'block_progression' => $payload['block_progression'] ?? true
             ],
             'passing_score' => $payload['passing_score'] ?? 70,
             'max_attempts' => $payload['max_attempts'] ?? 3,

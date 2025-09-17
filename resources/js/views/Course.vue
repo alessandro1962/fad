@@ -331,6 +331,7 @@ import AppLayout from '@/components/Layout/AppLayout.vue';
 import VideoPlayer from '@/components/Course/VideoPlayer.vue';
 import QuizPlayer from '@/components/Course/QuizPlayer.vue';
 import api from '@/api';
+import axios from 'axios';
 
 const route = useRoute();
 const router = useRouter();
@@ -361,8 +362,11 @@ const getLessonTypeLabel = (type) => {
 const loadCourse = async () => {
     try {
         loading.value = true;
-        const response = await api.get(`/v1/courses/${courseId.value}`);
+        console.log('Loading course with ID:', courseId.value);
+        const response = await axios.get(`/api/v1/courses/${courseId.value}`);
+        console.log('Course response:', response.data);
         course.value = response.data.data;
+        console.log('Course loaded:', course.value);
         
         // Load current lesson (first incomplete lesson or last lesson)
         await loadCurrentLesson();
@@ -375,30 +379,25 @@ const loadCourse = async () => {
 
 const loadCurrentLesson = async () => {
     try {
-        // Find first incomplete lesson
-        let targetLesson = null;
-        for (const module of course.value.modules || []) {
-            for (const lesson of module.lessons || []) {
-                if (!lesson.completed) {
-                    targetLesson = lesson;
-                    break;
-                }
-            }
-            if (targetLesson) break;
+        // For non-authenticated users, just show the first lesson
+        if (!course.value || !course.value.modules || course.value.modules.length === 0) {
+            return;
         }
         
-        // If all lessons completed, use last lesson
-        if (!targetLesson && course.value && course.value.modules && course.value.modules.length > 0) {
-            const lastModule = course.value.modules[course.value.modules.length - 1];
-            if (lastModule && lastModule.lessons && lastModule.lessons.length > 0) {
-                targetLesson = lastModule.lessons[lastModule.lessons.length - 1];
+        // Find first lesson
+        let targetLesson = null;
+        for (const module of course.value.modules || []) {
+            if (module.lessons && module.lessons.length > 0) {
+                targetLesson = module.lessons[0];
+                break;
             }
         }
         
         if (targetLesson) {
             currentLesson.value = targetLesson;
-            await loadLessonProgress();
-            await loadLessonAttempts();
+            // Don't load progress for non-authenticated users
+            // await loadLessonProgress();
+            // await loadLessonAttempts();
         }
     } catch (error) {
         console.error('Errore nel caricamento lezione corrente:', error);

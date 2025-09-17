@@ -102,6 +102,12 @@
                             Report Analytics
                         </router-link>
                         <router-link 
+                            to="/admin/certificate-templates"
+                            class="w-full btn-secondary block text-center"
+                        >
+                            Template Certificati
+                        </router-link>
+                        <router-link 
                             to="/admin/settings"
                             class="w-full btn-secondary block text-center"
                         >

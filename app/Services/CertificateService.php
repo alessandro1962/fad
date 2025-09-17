@@ -37,7 +37,7 @@ class CertificateService
         }
 
         // Get or create default template
-        $template = $this->getDefaultTemplate($referenceType);
+        $template = $this->getDefaultTemplate($referenceType, $reference);
 
         // Generate certificate
         $certificate = Certificate::create([
@@ -101,7 +101,13 @@ class CertificateService
      */
     private function renderCertificateHtml(CertificateTemplate $template, User $user, $reference, Certificate $certificate): string
     {
-        $html = $template->html_template;
+        // Se il template ha un html_template personalizzato, usalo
+        if ($template->html_template) {
+            $html = $template->html_template;
+        } else {
+            // Altrimenti genera l'HTML basandosi sull'immagine di sfondo e i placeholder
+            $html = $this->generateHtmlFromTemplate($template, $user, $reference, $certificate);
+        }
         
         // Replace placeholders
         $replacements = [
@@ -127,10 +133,129 @@ class CertificateService
     }
 
     /**
-     * Get default template for reference type.
+     * Generate HTML from template with background image and positioned placeholders.
      */
-    private function getDefaultTemplate(string $referenceType): CertificateTemplate
+    private function generateHtmlFromTemplate(CertificateTemplate $template, User $user, $reference, Certificate $certificate): string
     {
+        $backgroundImage = $template->background_image;
+        $placeholderPositions = $template->settings['placeholder_positions'] ?? [];
+        $styling = $template->settings['styling'] ?? [];
+        
+        // Se l'immagine è base64, usala direttamente
+        if (str_starts_with($backgroundImage, 'data:image')) {
+            $backgroundUrl = $backgroundImage;
+        } else {
+            // Altrimenti usa il path del file
+            $backgroundUrl = asset('storage/' . $backgroundImage);
+        }
+        
+        $html = '<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Certificato</title>
+    <style>
+        body { margin: 0; padding: 0; font-family: ' . ($styling['font_family'] ?? 'Inter') . '; }
+        .certificate-container { 
+            position: relative; 
+            width: 842px; 
+            height: 595px; 
+            background-image: url("' . $backgroundUrl . '"); 
+            background-size: cover; 
+            background-position: center; 
+            background-repeat: no-repeat;
+            overflow: hidden;
+        }';
+        
+        // Aggiungi stili per ogni placeholder posizionato
+        foreach ($placeholderPositions as $index => $placeholder) {
+            $fontSize = $placeholder['fontSize'];
+            $color = $placeholder['color'];
+            $fontFamily = $styling['font_family'] ?? 'Inter';
+            
+            // Personalizza stili per tipo di placeholder
+            if ($placeholder['type'] === 'user_name') {
+                $fontSize = $fontSize * 2; // Doppia grandezza
+                $color = '#0B3B5E'; // Blu scuro
+                $fontFamily = 'Brush Script MT, cursive'; // Carattere script
+            } elseif ($placeholder['type'] === 'course_title') {
+                $fontSize = $fontSize * 2; // Doppia grandezza
+                $color = '#000000'; // Nero
+            }
+            
+            $html .= '
+        .placeholder-' . $index . ' {
+            position: absolute;
+            left: ' . $placeholder['x'] . 'px;
+            top: ' . $placeholder['y'] . 'px;
+            font-size: ' . $fontSize . 'px;
+            color: ' . $color . ';
+            font-weight: ' . $placeholder['fontWeight'] . ';
+            font-family: ' . $fontFamily . ';
+            white-space: nowrap;
+            z-index: 10;
+        }';
+        }
+        
+        $html .= '
+    </style>
+</head>
+<body>
+    <div class="certificate-container">';
+        
+        // Aggiungi ogni placeholder posizionato
+        foreach ($placeholderPositions as $index => $placeholder) {
+            $text = $this->getPlaceholderText($placeholder['type'], $user, $reference, $certificate);
+            $html .= '
+        <div class="placeholder-' . $index . '">' . htmlspecialchars($text) . '</div>';
+        }
+        
+        $html .= '
+    </div>
+</body>
+</html>';
+        
+        return $html;
+    }
+    
+    /**
+     * Get text for placeholder type.
+     */
+    private function getPlaceholderText(string $type, User $user, $reference, Certificate $certificate): string
+    {
+        switch ($type) {
+            case 'user_name':
+                return $user->first_name . ' ' . $user->last_name;
+            case 'course_title':
+                return $reference->title;
+            case 'certificate_date':
+                return $certificate->issued_at->format('d/m/Y');
+            case 'hours_total':
+                return $certificate->hours_total . ' ore';
+            case 'certificate_uid':
+                return 'ID: ' . $certificate->public_uid;
+            default:
+                return '';
+        }
+    }
+
+    /**
+     * Get template for reference type and specific reference.
+     */
+    private function getDefaultTemplate(string $referenceType, $reference = null): CertificateTemplate
+    {
+        // Se abbiamo un riferimento specifico (corso), cerca il template associato
+        if ($reference && $referenceType === 'course') {
+            $template = CertificateTemplate::where('is_active', true)
+                ->where('course_id', $reference->id)
+                ->first();
+            
+            if ($template) {
+                return $template;
+            }
+        }
+
+        // Fallback: cerca il primo template attivo
         $template = CertificateTemplate::where('is_active', true)->first();
 
         if (!$template) {

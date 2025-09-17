@@ -23,7 +23,7 @@ class BadgeSeeder extends Seeder
                 'color' => '#00A7B7',
                 'category' => 'milestone',
                 'rarity' => 1,
-                'points' => 10,
+                'points' => 5,
                 'criteria' => ['first_login' => true],
             ],
             [
@@ -34,7 +34,7 @@ class BadgeSeeder extends Seeder
                 'color' => '#FFC857',
                 'category' => 'milestone',
                 'rarity' => 1,
-                'points' => 15,
+                'points' => 10,
                 'criteria' => ['profile_complete' => true],
             ],
 
@@ -47,7 +47,7 @@ class BadgeSeeder extends Seeder
                 'color' => '#00A7B7',
                 'category' => 'achievement',
                 'rarity' => 1,
-                'points' => 20,
+                'points' => 10,
                 'criteria' => ['lessons_completed' => 1],
             ],
             [
@@ -58,7 +58,7 @@ class BadgeSeeder extends Seeder
                 'color' => '#0B3B5E',
                 'category' => 'achievement',
                 'rarity' => 1,
-                'points' => 50,
+                'points' => 25,
                 'criteria' => ['lessons_completed' => 5],
             ],
             [
@@ -69,7 +69,7 @@ class BadgeSeeder extends Seeder
                 'color' => '#FFC857',
                 'category' => 'achievement',
                 'rarity' => 2,
-                'points' => 100,
+                'points' => 50,
                 'criteria' => ['lessons_completed' => 10],
             ],
             [
@@ -104,7 +104,7 @@ class BadgeSeeder extends Seeder
                 'color' => '#00A7B7',
                 'category' => 'achievement',
                 'rarity' => 1,
-                'points' => 100,
+                'points' => 25,
                 'criteria' => ['courses_completed' => 1],
             ],
             [
@@ -115,7 +115,7 @@ class BadgeSeeder extends Seeder
                 'color' => '#0B3B5E',
                 'category' => 'achievement',
                 'rarity' => 2,
-                'points' => 300,
+                'points' => 75,
                 'criteria' => ['courses_completed' => 3],
             ],
             [
@@ -253,7 +253,7 @@ class BadgeSeeder extends Seeder
                 'color' => '#0B3B5E',
                 'category' => 'achievement',
                 'rarity' => 2,
-                'points' => 600,
+                'points' => 150,
                 'criteria' => ['certificates_earned' => 3],
             ],
             [

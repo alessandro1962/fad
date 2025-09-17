@@ -16,20 +16,34 @@ class Course extends Model
         'level',
         'duration_minutes',
         'price_cents',
+        'sale_price_cents',
         'currency',
         'tags',
         'is_active',
         'published_at',
-        'featured_image',
+        'thumbnail_url',
+        'gallery',
         'video_preview_url',
+        'woocommerce_id',
+        'status',
+        'meta_data',
+        'categories',
+        'stock_status',
+        'manage_stock',
+        'stock_quantity',
     ];
 
     protected $casts = [
         'tags' => 'array',
+        'gallery' => 'array',
+        'meta_data' => 'array',
+        'categories' => 'array',
         'is_active' => 'boolean',
         'published_at' => 'datetime',
         'price_cents' => 'integer',
+        'sale_price_cents' => 'integer',
         'duration_minutes' => 'integer',
+        'stock_quantity' => 'integer',
     ];
 
     /**
@@ -38,6 +52,24 @@ class Course extends Model
     public function modules(): HasMany
     {
         return $this->hasMany(Module::class)->orderBy('order');
+    }
+
+    /**
+     * Get the price in euros (sale price if available, otherwise regular price)
+     */
+    public function getPriceAttribute(): string
+    {
+        // Use sale price if available, otherwise use regular price
+        $priceCents = $this->sale_price_cents ?: $this->price_cents;
+        return $priceCents ? number_format($priceCents / 100, 2) . '€' : '0.00€';
+    }
+
+    /**
+     * Get the WooCommerce price in euros (same as price)
+     */
+    public function getWooCommercePriceAttribute(): string
+    {
+        return $this->getPriceAttribute();
     }
 
     /**

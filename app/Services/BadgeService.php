@@ -129,17 +129,18 @@ class BadgeService
      */
     public function checkTrackCompletionBadges(User $user): void
     {
-        $completedTracks = $user->userTracks()->completed()->count();
+        // TODO: Implement when user_tracks table is created
+        // $completedTracks = $user->userTracks()->completed()->count();
         
         // Check for track completion badges
-        $badges = Badge::active()
-            ->where('category', 'learning')
-            ->whereJsonContains('criteria->tracks_completed', $completedTracks)
-            ->get();
+        // $badges = Badge::active()
+        //     ->where('category', 'learning')
+        //     ->whereJsonContains('criteria->tracks_completed', $completedTracks)
+        //     ->get();
 
-        foreach ($badges as $badge) {
-            $this->awardBadge($user, $badge, "Completato {$completedTracks} track");
-        }
+        // foreach ($badges as $badge) {
+        //     $this->awardBadge($user, $badge, "Completato {$completedTracks} track");
+        // }
     }
 
     /**
@@ -193,10 +194,10 @@ class BadgeService
             $user->badges()->attach($badge->id, [
                 'awarded_at' => now(),
                 'reason' => $reason,
-                'metadata' => [
+                'metadata' => json_encode([
                     'awarded_via' => 'automatic',
                     'awarded_at_timestamp' => now()->timestamp,
-                ],
+                ]),
             ]);
 
             Log::info("Badge awarded", [
@@ -206,8 +207,16 @@ class BadgeService
                 'reason' => $reason,
             ]);
 
-            // Send notification to the user
-            $user->notify(new BadgeEarnedNotification($badge, $reason));
+            // Send notification to the user (skip if notification fails)
+            try {
+                $user->notify(new BadgeEarnedNotification($badge, $reason));
+            } catch (\Exception $notificationError) {
+                Log::warning("Failed to send badge notification", [
+                    'user_id' => $user->id,
+                    'badge_id' => $badge->id,
+                    'error' => $notificationError->getMessage(),
+                ]);
+            }
 
         } catch (\Exception $e) {
             Log::error("Failed to award badge", [

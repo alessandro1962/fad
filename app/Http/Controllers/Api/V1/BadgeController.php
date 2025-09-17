@@ -59,7 +59,7 @@ class BadgeController extends Controller
                     'category' => $badge->category,
                     'rarity' => $badge->rarity,
                     'points' => $badge->points,
-                    'awarded_at' => $badge->pivot->awarded_at->toISOString(),
+                    'awarded_at' => $badge->pivot->awarded_at,
                     'reason' => $badge->pivot->reason,
                     'metadata' => $badge->pivot->metadata,
                 ];
@@ -104,7 +104,7 @@ class BadgeController extends Controller
                     'icon' => $badge->icon,
                     'color' => $badge->color,
                     'category' => $badge->category,
-                    'awarded_at' => $badge->pivot->awarded_at->toISOString(),
+                    'awarded_at' => $badge->pivot->awarded_at,
                     'reason' => $badge->pivot->reason,
                 ];
             });

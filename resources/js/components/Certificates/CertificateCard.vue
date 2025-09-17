@@ -43,15 +43,6 @@
         <span>Scarica PDF</span>
       </button>
       
-      <button
-        @click="shareCertificate"
-        class="px-4 py-2 border border-cdf-slate200 text-cdf-slate700 rounded-xl font-semibold hover:bg-cdf-slate50 transition-colors flex items-center justify-center"
-        title="Condividi certificato"
-      >
-        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.367 2.684 3 3 0 00-5.367-2.684z"></path>
-        </svg>
-      </button>
       
       <button
         @click="viewPublic"
@@ -79,57 +70,6 @@
       </div>
     </div>
 
-    <!-- Share Modal -->
-    <div v-if="showShareModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <div class="bg-white rounded-xl shadow-xl max-w-md w-full">
-        <div class="p-6">
-          <h3 class="text-lg font-bold text-cdf-deep mb-4">Condividi Certificato</h3>
-          
-          <div class="space-y-4">
-            <div>
-              <label class="block text-sm font-medium text-cdf-deep mb-2">Link Pubblico</label>
-              <div class="flex">
-                <input
-                  :value="publicUrl"
-                  readonly
-                  class="flex-1 px-3 py-2 border border-cdf-slate200 rounded-l-lg focus:ring-2 focus:ring-cdf-teal focus:border-transparent"
-                />
-                <button
-                  @click="copyToClipboard"
-                  class="px-4 py-2 bg-cdf-teal text-white rounded-r-lg hover:bg-cdf-deep transition-colors"
-                >
-                  Copia
-                </button>
-              </div>
-            </div>
-            
-            <div class="flex gap-3">
-              <button
-                @click="shareOnLinkedIn"
-                class="flex-1 bg-blue-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-blue-700 transition-colors"
-              >
-                LinkedIn
-              </button>
-              <button
-                @click="shareOnTwitter"
-                class="flex-1 bg-blue-400 text-white px-4 py-2 rounded-lg font-semibold hover:bg-blue-500 transition-colors"
-              >
-                Twitter
-              </button>
-            </div>
-          </div>
-          
-          <div class="flex justify-end gap-3 mt-6">
-            <button
-              @click="showShareModal = false"
-              class="px-4 py-2 text-cdf-slate600 border border-cdf-slate200 rounded-lg hover:bg-cdf-slate50 transition-colors"
-            >
-              Chiudi
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
   </div>
 </template>
 
@@ -144,11 +84,7 @@ const props = defineProps({
   }
 })
 
-const emit = defineEmits(['downloaded', 'shared'])
-
-// State
-const showShareModal = ref(false)
-const copying = ref(false)
+const emit = defineEmits(['downloaded'])
 
 // Computed
 const publicUrl = computed(() => {
@@ -188,46 +124,12 @@ const downloadCertificate = async () => {
   }
 }
 
-const shareCertificate = () => {
-  showShareModal.value = true
-  emit('shared', props.certificate)
-}
 
 const viewPublic = () => {
   window.open(publicUrl.value, '_blank')
 }
 
-const copyToClipboard = async () => {
-  try {
-    copying.value = true
-    await navigator.clipboard.writeText(publicUrl.value)
-    
-    // Show success message
-    const button = event.target
-    const originalText = button.textContent
-    button.textContent = 'Copiato!'
-    button.classList.add('bg-green-600')
-    
-    setTimeout(() => {
-      button.textContent = originalText
-      button.classList.remove('bg-green-600')
-      copying.value = false
-    }, 2000)
-  } catch (error) {
-    console.error('Errore nella copia:', error)
-  }
-}
 
-const shareOnLinkedIn = () => {
-  const url = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(publicUrl.value)}`
-  window.open(url, '_blank')
-}
-
-const shareOnTwitter = () => {
-  const text = `Ho completato il corso "${props.certificate.title}" su Campus Digitale Forma!`
-  const url = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(publicUrl.value)}`
-  window.open(url, '_blank')
-}
 </script>
 
 <style scoped>

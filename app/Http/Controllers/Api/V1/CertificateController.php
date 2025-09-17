@@ -244,32 +244,4 @@ class CertificateController extends Controller
             ->header('Content-Disposition', 'attachment; filename="certificato-' . $certificate->public_uid . '.pdf"');
     }
 
-    /**
-     * Share certificate.
-     */
-    public function share(Request $request, Certificate $certificate): JsonResponse
-    {
-        $user = $request->user();
-        
-        // Verify the certificate belongs to the user
-        if ($certificate->user_id !== $user->id) {
-            return response()->json([
-                'message' => 'Certificato non trovato.',
-            ], 404);
-        }
-
-        return response()->json([
-            'data' => [
-                'certificate_id' => $certificate->id,
-                'public_uid' => $certificate->public_uid,
-                'public_url' => $certificate->publicUrl,
-                'share_text' => "Ho completato con successo: {$certificate->title}",
-                'social_links' => [
-                    'linkedin' => "https://www.linkedin.com/sharing/share-offsite/?url=" . urlencode($certificate->publicUrl),
-                    'twitter' => "https://twitter.com/intent/tweet?text=" . urlencode("Ho completato con successo: {$certificate->title}") . "&url=" . urlencode($certificate->publicUrl),
-                    'facebook' => "https://www.facebook.com/sharer/sharer.php?u=" . urlencode($certificate->publicUrl),
-                ],
-            ],
-        ]);
-    }
 }

@@ -1,15 +1,29 @@
 <template>
-  <div class="badge-collection">
+  <AppLayout>
     <!-- Header -->
-    <div class="bg-gradient-to-r from-cdf-deep to-cdf-teal rounded-3xl p-8 mb-8 text-white">
-      <div class="flex items-center justify-between">
-        <div>
-          <h1 class="text-3xl font-bold mb-2">La Tua Collezione Badge</h1>
-          <p class="text-lg opacity-90">Mostra i tuoi traguardi e conquiste</p>
-        </div>
-        <div class="text-right">
-          <div class="text-2xl font-bold">{{ earnedBadges.length }} / {{ allBadges.length }}</div>
-          <div class="text-sm opacity-80">Badge Ottenuti</div>
+    <div class="mb-8">
+      <div class="flex items-center gap-4 mb-4">
+        <button
+          @click="goToDashboard"
+          class="flex items-center gap-2 px-3 py-2 text-cdf-slate600 hover:text-cdf-deep hover:bg-cdf-slate100 rounded-lg transition-colors"
+          title="Torna alla Dashboard"
+        >
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+          </svg>
+          Dashboard
+        </button>
+      </div>
+      <div class="bg-gradient-to-r from-cdf-deep to-cdf-teal rounded-3xl p-8 text-white">
+        <div class="flex items-center justify-between">
+          <div>
+            <h1 class="text-3xl font-bold mb-2">La Tua Collezione Badge</h1>
+            <p class="text-lg opacity-90">Mostra i tuoi traguardi e conquiste</p>
+          </div>
+          <div class="text-right">
+            <div class="text-2xl font-bold">{{ earnedBadges.length }} / {{ allBadges.length }}</div>
+            <div class="text-sm opacity-80">Badge Ottenuti</div>
+          </div>
         </div>
       </div>
     </div>
@@ -96,12 +110,17 @@
       <h3 class="text-xl font-bold text-cdf-deep mb-2">Nessun badge trovato</h3>
       <p class="text-cdf-slate700">Prova a cambiare filtro o categoria</p>
     </div>
-  </div>
+  </AppLayout>
 </template>
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
+import AppLayout from '@/components/Layout/AppLayout.vue'
 import api from '@/api'
+
+// Router
+const router = useRouter()
 
 // State
 const allBadges = ref([])
@@ -219,6 +238,11 @@ const loadEarnedBadges = async () => {
   } catch (error) {
     console.error('Errore nel caricamento badge ottenuti:', error)
   }
+}
+
+// Methods
+const goToDashboard = () => {
+  router.push('/dashboard')
 }
 
 // Lifecycle

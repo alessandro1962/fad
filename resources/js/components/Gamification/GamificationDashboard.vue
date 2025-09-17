@@ -1,15 +1,29 @@
 <template>
-  <div class="gamification-dashboard">
+  <AppLayout>
     <!-- Header -->
-    <div class="bg-gradient-to-r from-cdf-deep to-cdf-teal rounded-3xl p-8 mb-8 text-white">
-      <div class="flex items-center justify-between">
-        <div>
-          <h1 class="text-3xl font-bold mb-2">Il Tuo Progresso</h1>
-          <p class="text-lg opacity-90">Continua il tuo percorso di apprendimento e sblocca nuovi traguardi</p>
-        </div>
-        <div class="text-right">
-          <div class="text-2xl font-bold">{{ userLevel.name }}</div>
-          <div class="text-sm opacity-80">Livello {{ userLevel.level }}</div>
+    <div class="mb-8">
+      <div class="flex items-center gap-4 mb-4">
+        <button
+          @click="goToDashboard"
+          class="flex items-center gap-2 px-3 py-2 text-cdf-slate600 hover:text-cdf-deep hover:bg-cdf-slate100 rounded-lg transition-colors"
+          title="Torna alla Dashboard"
+        >
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+          </svg>
+          Dashboard
+        </button>
+      </div>
+      <div class="bg-gradient-to-r from-cdf-deep to-cdf-teal rounded-3xl p-8 text-white">
+        <div class="flex items-center justify-between">
+          <div>
+            <h1 class="text-3xl font-bold mb-2">Il Tuo Progresso</h1>
+            <p class="text-lg opacity-90">Continua il tuo percorso di apprendimento e sblocca nuovi traguardi</p>
+          </div>
+          <div class="text-right">
+            <div class="text-2xl font-bold">{{ userLevel.name }}</div>
+            <div class="text-sm opacity-80">Livello {{ userLevel.level }}</div>
+          </div>
         </div>
       </div>
     </div>
@@ -34,7 +48,7 @@
                 </div>
               </div>
               <div class="text-right">
-                <div class="text-2xl font-bold text-cdf-deep">{{ userStats.totalPoints }}</div>
+                <div class="text-2xl font-bold text-cdf-deep">{{ userStats.totalPoints || 0 }}</div>
                 <div class="text-sm text-cdf-slate700">Punti Totali</div>
               </div>
             </div>
@@ -42,7 +56,7 @@
             <!-- Progress Bar -->
             <div class="space-y-2">
               <div class="flex justify-between text-sm text-cdf-slate700">
-                <span>{{ userStats.currentLevelPoints }} / {{ userStats.nextLevelPoints }} punti</span>
+                <span>{{ userStats.currentLevelPoints || 0 }} / {{ userStats.nextLevelPoints || 100 }} punti</span>
                 <span>{{ Math.round(levelProgress) }}%</span>
               </div>
               <div class="w-full bg-cdf-slate200 rounded-full h-3">
@@ -52,7 +66,7 @@
                 ></div>
               </div>
               <p class="text-sm text-cdf-slate600">
-                {{ userStats.pointsToNextLevel }} punti per raggiungere il livello {{ userLevel.level + 1 }}
+                {{ userStats.pointsToNextLevel || 100 }} punti per raggiungere il livello {{ (userLevel.level || 1) + 1 }}
               </p>
             </div>
           </div>
@@ -183,7 +197,7 @@
         <!-- Achievement Progress -->
         <div class="bg-white rounded-2xl shadow-sm border border-cdf-slate200 p-6">
           <h3 class="font-bold text-cdf-deep mb-4">Prossimi Traguardi</h3>
-          <div class="space-y-4">
+          <div v-if="upcomingAchievements.length > 0" class="space-y-4">
             <div
               v-for="achievement in upcomingAchievements"
               :key="achievement.id"
@@ -199,16 +213,24 @@
                   <div 
                     class="h-1.5 rounded-full transition-all duration-300"
                     :style="{ 
-                      width: `${achievement.progress}%`,
+                      width: `${Math.min(100, Math.max(0, achievement.progress || 0))}%`,
                       backgroundColor: achievement.color
                     }"
                   ></div>
                 </div>
                 <p class="text-xs text-cdf-slate700 mt-1">
-                  {{ achievement.current }} / {{ achievement.target }}
+                  {{ achievement.current || 0 }} / {{ achievement.target || 1 }}
                 </p>
               </div>
             </div>
+          </div>
+          <div v-else class="text-center py-8">
+            <div class="w-16 h-16 mx-auto mb-4 rounded-full bg-cdf-slate200 flex items-center justify-center">
+              <svg class="w-8 h-8 text-cdf-slate700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+              </svg>
+            </div>
+            <p class="text-cdf-slate700">Continua a imparare per sbloccare nuovi traguardi!</p>
           </div>
         </div>
 
@@ -240,12 +262,17 @@
         </div>
       </div>
     </div>
-  </div>
+  </AppLayout>
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, nextTick } from 'vue'
+import { useRouter } from 'vue-router'
+import AppLayout from '@/components/Layout/AppLayout.vue'
 import api from '@/api'
+
+// Router
+const router = useRouter()
 
 // State
 const userStats = ref({
@@ -274,8 +301,11 @@ const streakCalendar = ref([])
 
 // Computed
 const levelProgress = computed(() => {
-  if (userStats.value.nextLevelPoints === 0) return 100
-  return (userStats.value.currentLevelPoints / userStats.value.nextLevelPoints) * 100
+  const current = userStats.value.currentLevelPoints || 0
+  const next = userStats.value.nextLevelPoints || 100
+  
+  if (next === 0) return 100
+  return Math.min(100, (current / next) * 100)
 })
 
 // Methods
@@ -290,8 +320,29 @@ const formatDate = (dateString) => {
 const loadUserStats = async () => {
   try {
     const response = await api.get('/v1/gamification/stats')
-    userStats.value = response.data.data.stats
-    userLevel.value = response.data.data.level
+    
+    // Map API data (snake_case) to frontend format (camelCase)
+    const apiStats = response.data.data.stats
+    const apiLevel = response.data.data.level
+    
+    userStats.value = {
+      totalPoints: apiStats.total_points || 0,
+      currentLevelPoints: apiStats.current_level_points || 0,
+      nextLevelPoints: apiStats.next_level_points || 100,
+      pointsToNextLevel: apiStats.points_to_next_level || 100,
+      completedCourses: apiStats.completed_courses || 0,
+      completedLessons: apiStats.completed_lessons || 0,
+      passedQuizzes: apiStats.passed_quizzes || 0,
+      learningHours: apiStats.learning_hours || 0,
+      learningStreak: apiStats.learning_streak || 0,
+      totalLearningDays: apiStats.total_learning_days || 0
+    }
+    
+    userLevel.value = {
+      level: apiLevel.level || 1,
+      name: apiLevel.name || 'Principiante',
+      description: apiLevel.description || 'Hai appena iniziato il tuo percorso di apprendimento'
+    }
   } catch (error) {
     console.error('Errore nel caricamento statistiche:', error)
   }
@@ -341,6 +392,11 @@ const generateStreakCalendar = () => {
   }
   
   streakCalendar.value = calendar
+}
+
+// Methods
+const goToDashboard = () => {
+  router.push('/dashboard')
 }
 
 // Lifecycle

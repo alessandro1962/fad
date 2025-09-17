@@ -28,6 +28,8 @@ class CourseResource extends JsonResource
             'currency' => $this->currency,
             'tags' => $this->tags,
             'featured_image' => $this->featured_image,
+            'thumbnail_url' => $this->thumbnail_url,
+            'gallery' => $this->gallery,
             'video_preview_url' => $this->video_preview_url,
             'is_active' => $this->is_active,
             'published_at' => $this->published_at?->toISOString(),

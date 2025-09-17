@@ -2,6 +2,18 @@
     <AppLayout>
         <!-- Header -->
         <div class="mb-8">
+            <div class="flex items-center gap-4 mb-4">
+                <button
+                    @click="goToDashboard"
+                    class="flex items-center gap-2 px-3 py-2 text-cdf-slate600 hover:text-cdf-deep hover:bg-cdf-slate100 rounded-lg transition-colors"
+                    title="Torna alla Dashboard"
+                >
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+                    </svg>
+                    Dashboard
+                </button>
+            </div>
             <h1 class="text-3xl font-bold text-cdf-deep">I Miei Attestati</h1>
             <p class="text-cdf-slate700 mt-2">Visualizza e condividi le tue certificazioni</p>
         </div>
@@ -146,14 +158,6 @@
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
                             </svg>
                         </button>
-                        <button 
-                            @click="shareCertificate(certificate)"
-                            class="px-4 py-2 border border-cdf-slate200 text-cdf-slate700 rounded-xl font-semibold hover:bg-cdf-sand transition-colors duration-200"
-                        >
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.367 2.684 3 3 0 00-5.367-2.684z"></path>
-                            </svg>
-                        </button>
                     </div>
                 </div>
             </div>
@@ -212,15 +216,15 @@
                         </div>
                         <div class="flex justify-between py-2 border-b border-cdf-slate200">
                             <span class="text-cdf-slate700">Data rilascio:</span>
-                            <span class="font-medium text-cdf-deep">{{ selectedCertificate?.issuedAt }}</span>
+                            <span class="font-medium text-cdf-deep">{{ selectedCertificate?.issued_at ? new Date(selectedCertificate.issued_at).toLocaleDateString('it-IT') : 'Non disponibile' }}</span>
                         </div>
                         <div class="flex justify-between py-2 border-b border-cdf-slate200">
                             <span class="text-cdf-slate700">ID Certificato:</span>
-                            <span class="font-mono text-sm text-cdf-slate700">{{ selectedCertificate?.certificateId }}</span>
+                            <span class="font-mono text-sm text-cdf-slate700">{{ selectedCertificate?.public_uid || 'Non disponibile' }}</span>
                         </div>
                         <div class="flex justify-between py-2">
                             <span class="text-cdf-slate700">Durata corso:</span>
-                            <span class="font-medium text-cdf-deep">{{ selectedCertificate?.duration }}</span>
+                            <span class="font-medium text-cdf-deep">{{ selectedCertificate?.hours_total ? selectedCertificate.hours_total + ' ore' : 'Non disponibile' }}</span>
                         </div>
                     </div>
                 </div>
@@ -231,11 +235,13 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue';
+import { useRouter } from 'vue-router';
 import AppLayout from '@/components/Layout/AppLayout.vue';
 import { useAuthStore } from '@/stores/auth';
 import api from '@/api';
 
 const authStore = useAuthStore();
+const router = useRouter();
 const showVerificationModal = ref(false);
 const selectedCertificate = ref(null);
 
@@ -277,6 +283,7 @@ const getTypeBadgeClass = (kind) => {
 };
 
 const viewCertificate = (certificate) => {
+    console.log('Certificate object:', certificate);
     selectedCertificate.value = certificate;
     showVerificationModal.value = true;
 };
@@ -323,19 +330,8 @@ const downloadCertificate = async (certificate) => {
     }
 };
 
-const shareCertificate = (certificate) => {
-    console.log('Share certificate:', certificate);
-    // Implement sharing functionality
-    if (navigator.share) {
-        navigator.share({
-            title: certificate.title,
-            text: `Ho completato il corso "${certificate.title}" su Campus Digitale Forma!`,
-            url: certificate.publicUrl
-        });
-    } else {
-        // Fallback to copy link
-        navigator.clipboard.writeText(certificate.publicUrl);
-        alert('Link copiato negli appunti!');
-    }
+const goToDashboard = () => {
+    router.push('/dashboard');
 };
+
 </script>

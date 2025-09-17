@@ -4,28 +4,32 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class CertificateTemplate extends Model
 {
     protected $fillable = [
         'name',
         'description',
-        'type',
-        'background_type',
-        'background_data',
-        'placeholder_positions',
-        'styling',
-        'is_default',
+        'template_type',
+        'course_id', // Corso associato
+        'background_image',
+        'settings',
         'is_active',
-        'sort_order',
     ];
 
     protected $casts = [
-        'placeholder_positions' => 'array',
-        'styling' => 'array',
-        'is_default' => 'boolean',
+        'settings' => 'array',
         'is_active' => 'boolean',
     ];
+
+    /**
+     * Get the course associated with this template.
+     */
+    public function course(): BelongsTo
+    {
+        return $this->belongsTo(Course::class);
+    }
 
     /**
      * Get the tracks that use this template.
@@ -48,7 +52,7 @@ class CertificateTemplate extends Model
      */
     public function scopeOfType($query, $type)
     {
-        return $query->where('type', $type);
+        return $query->where('template_type', $type);
     }
 
     /**

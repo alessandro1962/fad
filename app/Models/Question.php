@@ -21,6 +21,7 @@ class Question extends Model
 
     protected $casts = [
         'options' => 'array',
+        'correct_answer' => 'array',
         'score' => 'integer',
         'order' => 'integer',
         'is_active' => 'boolean',

@@ -1,8 +1,19 @@
 <template>
-    <div class="group bg-white rounded-2xl shadow-sm border border-cdf-slate200 hover:shadow-xl hover:border-cdf-teal/30 transition-all duration-300 overflow-hidden">
+    <div 
+        class="group bg-white rounded-2xl shadow-sm border border-cdf-slate200 hover:shadow-xl hover:border-cdf-teal/30 transition-all duration-300 overflow-hidden cursor-pointer"
+        @click="goToCourse"
+    >
         <!-- Course Image/Thumbnail -->
-        <div class="relative h-48 bg-gradient-to-br from-cdf-teal/20 via-cdf-deep/20 to-cdf-amber/20 overflow-hidden">
-            <div class="absolute inset-0 flex items-center justify-center">
+        <div class="relative h-48 overflow-hidden">
+            <!-- Course Image -->
+            <img 
+                v-if="course.thumbnail_url" 
+                :src="getImageUrl(course.thumbnail_url)" 
+                :alt="course.title"
+                class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+            />
+            <!-- Fallback gradient background -->
+            <div v-else class="w-full h-full bg-gradient-to-br from-cdf-teal/20 via-cdf-deep/20 to-cdf-amber/20 flex items-center justify-center">
                 <div class="text-center">
                     <div class="w-16 h-16 mx-auto mb-3 rounded-2xl bg-white/80 backdrop-blur-sm flex items-center justify-center shadow-lg">
                         <svg class="w-8 h-8 text-cdf-deep" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -188,6 +199,19 @@ const actionButtonText = computed(() => {
 
 const handleAction = () => {
     emit('action', props.course);
+};
+
+const getImageUrl = (imagePath) => {
+    if (!imagePath) return null;
+    // If it's already a full URL, return as is
+    if (imagePath.startsWith('http')) return imagePath;
+    // Otherwise, construct the full URL
+    return `${import.meta.env.VITE_APP_URL || 'http://127.0.0.1:8001'}/storage/${imagePath}`;
+};
+
+const goToCourse = () => {
+    // Navigate to course details page using ID
+    window.location.href = `/corso/${props.course.id}`;
 };
 </script>
 

@@ -12,6 +12,7 @@ use App\Http\Controllers\Api\V1\QuizController;
 use App\Http\Controllers\Admin\CourseController as AdminCourseController;
 use App\Http\Controllers\Admin\AnalyticsController;
 use App\Http\Controllers\Admin\EnrollmentController as AdminEnrollmentController;
+use App\Http\Controllers\Admin\WooCommerceController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -64,7 +65,6 @@ Route::prefix('v1')->group(function () {
         Route::post('/certificates/generate', [CertificateController::class, 'generate']);
         Route::get('/certificates/{certificate}', [CertificateController::class, 'show']);
         Route::get('/certificates/{certificate}/download', [CertificateController::class, 'download']);
-        Route::get('/certificates/{certificate}/share', [CertificateController::class, 'share']);
         
         // Badge routes
         Route::get('/badges', [BadgeController::class, 'index']);
@@ -102,6 +102,9 @@ Route::prefix('v1')->group(function () {
             Route::apiResource('certificate-templates', App\Http\Controllers\Admin\CertificateTemplateController::class);
             Route::get('certificate-templates/{certificateTemplate}/preview', [App\Http\Controllers\Admin\CertificateTemplateController::class, 'preview']);
             Route::patch('certificate-templates/{certificateTemplate}/set-default', [App\Http\Controllers\Admin\CertificateTemplateController::class, 'setDefault']);
+            Route::post('certificate-templates/{certificateTemplate}/duplicate', [App\Http\Controllers\Admin\CertificateTemplateController::class, 'duplicate']);
+            Route::get('certificate-templates/{certificateTemplate}/export', [App\Http\Controllers\Admin\CertificateTemplateController::class, 'export']);
+            Route::post('certificate-templates/import', [App\Http\Controllers\Admin\CertificateTemplateController::class, 'import']);
             Route::post('courses/{course}/modules', [App\Http\Controllers\Admin\ModuleController::class, 'store']);
             Route::apiResource('modules', App\Http\Controllers\Admin\ModuleController::class)->except(['index', 'store']);
             Route::post('modules/reorder', [App\Http\Controllers\Admin\ModuleController::class, 'reorder']);
@@ -130,7 +133,17 @@ Route::prefix('v1')->group(function () {
                 Route::patch('enrollments/{enrollment}/status', [AdminEnrollmentController::class, 'updateStatus']);
                 Route::delete('enrollments/{enrollment}', [AdminEnrollmentController::class, 'cancel']);
                 Route::get('enrollments/statistics', [AdminEnrollmentController::class, 'statistics']);
+                
+                // WooCommerce Integration
+                Route::prefix('woocommerce')->group(function () {
+                    Route::get('status', [WooCommerceController::class, 'getStatus']);
+                    Route::post('sync', [WooCommerceController::class, 'syncAll']);
+                    Route::post('test-connection', [WooCommerceController::class, 'testConnection']);
+                });
         });
     });
+    
+    // WooCommerce Webhook (public route)
+    Route::post('woocommerce/webhook', [WooCommerceController::class, 'webhook']);
 });
 
