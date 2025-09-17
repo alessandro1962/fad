@@ -355,7 +355,7 @@ const getStatusClass = (status) => {
 };
 
 const startCourse = (course) => {
-    router.push(`/corso/${course.id}`);
+    router.push(`/corso-autenticato/${course.id}`);
 };
 
 // Load data when component mounts
