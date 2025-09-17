@@ -21,7 +21,6 @@ class Question extends Model
 
     protected $casts = [
         'options' => 'array',
-        'correct_answer' => 'array',
         'score' => 'integer',
         'order' => 'integer',
         'is_active' => 'boolean',
@@ -57,11 +56,35 @@ class Question extends Model
     public function isCorrectAnswer($answer)
     {
         if ($this->type === 'multiple_choice' || $this->type === 'single_choice') {
-            return in_array($answer, $this->correct_answer);
+            // Handle different correct_answer formats
+            $correctAnswer = $this->correct_answer;
+            
+            // If it's a JSON string, decode it
+            if (is_string($correctAnswer) && (str_starts_with($correctAnswer, '[') || str_starts_with($correctAnswer, '"'))) {
+                $correctAnswer = json_decode($correctAnswer, true);
+            }
+            
+            if (is_array($correctAnswer)) {
+                return in_array($answer, $correctAnswer);
+            } else {
+                // correct_answer is an integer index
+                $correctOption = $this->options[$correctAnswer] ?? null;
+                return $answer === $correctOption;
+            }
         } elseif ($this->type === 'true_false') {
-            return $answer === $this->correct_answer[0];
+            $correctAnswer = $this->correct_answer;
+            if (is_string($correctAnswer) && (str_starts_with($correctAnswer, '[') || str_starts_with($correctAnswer, '"'))) {
+                $correctAnswer = json_decode($correctAnswer, true);
+            }
+            $correctAnswer = is_array($correctAnswer) ? $correctAnswer[0] : $correctAnswer;
+            return $answer === $correctAnswer;
         } elseif ($this->type === 'text' || $this->type === 'number') {
-            return strtolower(trim($answer)) === strtolower(trim($this->correct_answer[0]));
+            $correctAnswer = $this->correct_answer;
+            if (is_string($correctAnswer) && (str_starts_with($correctAnswer, '[') || str_starts_with($correctAnswer, '"'))) {
+                $correctAnswer = json_decode($correctAnswer, true);
+            }
+            $correctAnswer = is_array($correctAnswer) ? $correctAnswer[0] : $correctAnswer;
+            return strtolower(trim($answer)) === strtolower(trim($correctAnswer));
         }
         
         return false;

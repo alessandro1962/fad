@@ -55,6 +55,8 @@ Route::prefix('v1')->group(function () {
         Route::post('/quizzes/{quiz}/start', [QuizController::class, 'start']);
         Route::post('/quizzes/{quiz}/submit', [QuizController::class, 'submit']);
         Route::get('/quizzes/{quiz}/history', [QuizController::class, 'history']);
+        Route::get('/lessons/{lesson}/quiz', [QuizController::class, 'getQuizByLesson']);
+        Route::get('/quiz-attempts', [QuizController::class, 'getAttemptsByLesson']);
         Route::get('/quizzes/{quiz}/attempts/{attempt}/results', [QuizController::class, 'results']);
         
         // Certificate routes

@@ -19,7 +19,7 @@ if (token) {
 // Request interceptor to add auth token
 api.interceptors.request.use(
   (config) => {
-    const authToken = localStorage.getItem('auth_token')
+    const authToken = localStorage.getItem('token')
     if (authToken) {
       config.headers.Authorization = `Bearer ${authToken}`
     }
@@ -38,7 +38,7 @@ api.interceptors.response.use(
   (error) => {
     if (error.response?.status === 401) {
       // Token expired or invalid
-      localStorage.removeItem('auth_token')
+      localStorage.removeItem('token')
       localStorage.removeItem('user')
       window.location.href = '/login'
     }

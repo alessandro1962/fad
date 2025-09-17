@@ -63,7 +63,7 @@ class ProgressController extends Controller
         $course = $lesson->module->course;
         $enrollment = $user->enrollments()
             ->where('course_id', $course->id)
-            ->where('status', 'active')
+            ->whereIn('status', ['active', 'completed'])
             ->first();
 
         if (!$enrollment) {

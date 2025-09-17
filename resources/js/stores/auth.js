@@ -79,7 +79,7 @@ export const useAuthStore = defineStore('auth', {
             
             try {
                 axios.defaults.headers.common['Authorization'] = `Bearer ${this.token}`;
-                const response = await axios.get('/api/v1/me');
+                const response = await axios.get('/api/v1/auth/me');
                 this.user = response.data.data;
             } catch (error) {
                 console.error('Fetch user error:', error);

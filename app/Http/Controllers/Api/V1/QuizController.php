@@ -5,11 +5,69 @@ namespace App\Http\Controllers\Api\V1;
 use App\Http\Controllers\Controller;
 use App\Models\Attempt;
 use App\Models\Quiz;
+use App\Models\Lesson;
+use App\Models\Progress;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class QuizController extends Controller
 {
+    /**
+     * Get quiz for a specific lesson.
+     */
+    public function getQuizByLesson(Request $request, Lesson $lesson): JsonResponse
+    {
+        $user = $request->user();
+        
+        // Check if user is enrolled in the course
+        $course = $lesson->module->course;
+        $enrollment = $user->enrollments()
+            ->where('course_id', $course->id)
+            ->whereIn('status', ['active', 'completed'])
+            ->first();
+
+        if (!$enrollment) {
+            return response()->json([
+                'message' => 'Non sei iscritto a questo corso.',
+            ], 403);
+        }
+
+        // Get the quiz for this lesson
+        $quiz = $lesson->quiz;
+        
+        if (!$quiz) {
+            return response()->json([
+                'message' => 'Quiz non trovato per questa lezione.',
+            ], 404);
+        }
+
+        // Load quiz with questions
+        $quiz->load(['questions' => function ($query) {
+            $query->where('is_active', true)->orderBy('order');
+        }]);
+
+        return response()->json([
+            'data' => [
+                'id' => $quiz->id,
+                'quiz_title' => $quiz->title,
+                'description' => $quiz->description,
+                'passing_score' => $quiz->passing_score,
+                'max_attempts' => $quiz->max_attempts,
+                'time_limit_minutes' => $quiz->time_limit_minutes,
+                'questions' => $quiz->questions->map(function ($question) {
+                    return [
+                        'id' => $question->id,
+                        'text' => $question->text,
+                        'type' => $question->type,
+                        'options' => $question->options,
+                        'score' => $question->score,
+                        'explanation' => $question->explanation,
+                    ];
+                }),
+            ]
+        ]);
+    }
+
     /**
      * Get quiz details for a lesson.
      */
@@ -21,7 +79,7 @@ class QuizController extends Controller
         $course = $quiz->lesson->module->course;
         $enrollment = $user->enrollments()
             ->where('course_id', $course->id)
-            ->where('status', 'active')
+            ->whereIn('status', ['active', 'completed'])
             ->first();
 
         if (!$enrollment) {
@@ -97,7 +155,7 @@ class QuizController extends Controller
         $course = $quiz->lesson->module->course;
         $enrollment = $user->enrollments()
             ->where('course_id', $course->id)
-            ->where('status', 'active')
+            ->whereIn('status', ['active', 'completed'])
             ->first();
 
         if (!$enrollment) {
@@ -111,7 +169,9 @@ class QuizController extends Controller
             ->where('quiz_id', $quiz->id)
             ->count();
 
-        if ($attemptCount >= $quiz->max_attempts) {
+        // Allow unlimited attempts for completed courses (for review purposes)
+        // For testing purposes, allow unlimited attempts for all courses
+        if ($attemptCount >= $quiz->max_attempts && $enrollment->status !== 'completed' && $quiz->max_attempts < 999) {
             return response()->json([
                 'message' => 'Hai raggiunto il numero massimo di tentativi per questo quiz.',
             ], 403);
@@ -239,6 +299,41 @@ class QuizController extends Controller
             'answers' => $answers,
         ]);
 
+        // Update lesson progress if quiz is passed
+        if ($passed) {
+            $lesson = $quiz->lesson;
+            $course = $lesson->module->course;
+            
+            // Check if user is enrolled in the course
+            $enrollment = $user->enrollments()
+                ->where('course_id', $course->id)
+                ->whereIn('status', ['active', 'completed'])
+                ->first();
+
+            if ($enrollment) {
+                // Update lesson progress
+                $progress = $user->progress()
+                    ->where('lesson_id', $lesson->id)
+                    ->first();
+
+                if ($progress) {
+                    $progress->update([
+                        'completed' => true,
+                        'completed_at' => now(),
+                    ]);
+                } else {
+                    $user->progress()->create([
+                        'lesson_id' => $lesson->id,
+                        'completed' => true,
+                        'completed_at' => now(),
+                    ]);
+                }
+
+                // Update enrollment progress
+                $this->updateEnrollmentProgress($enrollment);
+            }
+        }
+
         return response()->json([
             'message' => 'Quiz completato con successo.',
             'data' => [
@@ -310,6 +405,61 @@ class QuizController extends Controller
     }
 
     /**
+     * Get user's quiz attempts for a specific lesson.
+     */
+    public function getAttemptsByLesson(Request $request): JsonResponse
+    {
+        $request->validate([
+            'lesson_id' => ['required', 'integer', 'exists:lessons,id'],
+        ]);
+
+        $user = $request->user();
+        $lesson = Lesson::findOrFail($request->lesson_id);
+        
+        // Check if user is enrolled in the course
+        $course = $lesson->module->course;
+        $enrollment = $user->enrollments()
+            ->where('course_id', $course->id)
+            ->whereIn('status', ['active', 'completed'])
+            ->first();
+
+        if (!$enrollment) {
+            return response()->json([
+                'message' => 'Non sei iscritto a questo corso.',
+            ], 403);
+        }
+
+        $quiz = $lesson->quiz;
+        if (!$quiz) {
+            return response()->json([
+                'data' => []
+            ]);
+        }
+
+        $attempts = $user->attempts()
+            ->where('quiz_id', $quiz->id)
+            ->orderBy('attempt_number', 'desc')
+            ->get()
+            ->map(function ($attempt) {
+                return [
+                    'id' => $attempt->id,
+                    'attempt_number' => $attempt->attempt_number,
+                    'score' => $attempt->score,
+                    'max_score' => $attempt->max_score,
+                    'percentage' => $attempt->percentage,
+                    'passed' => $attempt->passed,
+                    'started_at' => $attempt->started_at?->toISOString(),
+                    'finished_at' => $attempt->finished_at?->toISOString(),
+                    'duration' => $attempt->duration,
+                ];
+            });
+
+        return response()->json([
+            'data' => $attempts
+        ]);
+    }
+
+    /**
      * Get user's quiz history for a specific quiz.
      */
     public function history(Request $request, Quiz $quiz): JsonResponse
@@ -345,6 +495,39 @@ class QuizController extends Controller
                 'has_passed' => $attempts->where('passed', true)->isNotEmpty(),
                 'attempts' => $attempts,
             ],
+        ]);
+    }
+
+    /**
+     * Update enrollment progress based on completed lessons.
+     */
+    private function updateEnrollmentProgress($enrollment)
+    {
+        $user = $enrollment->user;
+        $course = $enrollment->course;
+        
+        $totalLessons = $course->modules()
+            ->withCount('lessons')
+            ->get()
+            ->sum('lessons_count');
+
+        if ($totalLessons === 0) {
+            return;
+        }
+
+        $completedLessons = $user->progress()
+            ->whereHas('lesson.module', function ($query) use ($course) {
+                $query->where('course_id', $course->id);
+            })
+            ->completed()
+            ->count();
+
+        $progressPercentage = round(($completedLessons / $totalLessons) * 100);
+        
+        $enrollment->update([
+            'progress_percentage' => $progressPercentage,
+            'status' => $progressPercentage >= 100 ? 'completed' : 'active',
+            'completed_at' => $progressPercentage >= 100 ? now() : null,
         ]);
     }
 }

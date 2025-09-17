@@ -5,6 +5,79 @@
             <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-cdf-teal"></div>
         </div>
 
+        <!-- Course Completion Screen -->
+        <div v-else-if="courseCompleted" class="max-w-4xl mx-auto py-12">
+            <div class="bg-white rounded-3xl shadow-xl border border-cdf-slate200 p-8 text-center">
+                <!-- Success Icon -->
+                <div class="w-32 h-32 mx-auto mb-8 bg-gradient-to-br from-green-400 to-green-600 rounded-full flex items-center justify-center">
+                    <svg class="w-16 h-16 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                </div>
+
+                <!-- Congratulations Message -->
+                <h1 class="text-4xl font-bold text-cdf-deep mb-4">
+                    🎉 Congratulazioni!
+                </h1>
+                <h2 class="text-2xl font-semibold text-cdf-slate700 mb-6">
+                    Hai completato con successo il corso
+                </h2>
+                <p class="text-xl text-cdf-slate600 mb-8">
+                    <strong>{{ course.title }}</strong>
+                </p>
+
+                <!-- Certificate Info -->
+                <div class="bg-cdf-sand rounded-2xl p-6 mb-8">
+                    <div class="flex items-center justify-center mb-4">
+                        <svg class="w-8 h-8 text-cdf-teal mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                        </svg>
+                        <h3 class="text-lg font-semibold text-cdf-deep">Attestato di Partecipazione</h3>
+                    </div>
+                    <p class="text-cdf-slate700 mb-4">
+                        Nella sezione <strong>"Attestati"</strong> troverai un bellissimo PDF con il tuo attestato di partecipazione al corso.
+                    </p>
+                    <p class="text-sm text-cdf-slate600">
+                        L'attestato è personalizzato con il tuo nome e include tutti i dettagli del corso completato.
+                    </p>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="flex flex-col sm:flex-row gap-4 justify-center">
+                    <button
+                        @click="goToDashboard"
+                        class="px-8 py-3 bg-cdf-teal text-white rounded-xl font-semibold hover:bg-cdf-deep transition-colors"
+                    >
+                        🏠 Torna alla Dashboard
+                    </button>
+                    <button
+                        @click="goToMyCourses"
+                        class="px-8 py-3 bg-cdf-amber text-cdf-ink rounded-xl font-semibold hover:brightness-95 transition-colors"
+                    >
+                        📚 I Miei Corsi
+                    </button>
+                </div>
+
+                <!-- Course Stats -->
+                <div class="mt-8 pt-8 border-t border-cdf-slate200">
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div class="text-center">
+                            <div class="text-2xl font-bold text-cdf-teal">{{ course.modules_count || 0 }}</div>
+                            <div class="text-sm text-cdf-slate600">Moduli Completati</div>
+                        </div>
+                        <div class="text-center">
+                            <div class="text-2xl font-bold text-cdf-teal">{{ formatDuration(course.duration_minutes) }}</div>
+                            <div class="text-sm text-cdf-slate600">Durata Totale</div>
+                        </div>
+                        <div class="text-center">
+                            <div class="text-2xl font-bold text-cdf-teal">{{ course.level || 'N/A' }}</div>
+                            <div class="text-sm text-cdf-slate600">Livello</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- Course Content -->
         <div v-else>
         <!-- Course Header -->
@@ -253,13 +326,14 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue';
-import { useRoute } from 'vue-router';
+import { useRoute, useRouter } from 'vue-router';
 import AppLayout from '@/components/Layout/AppLayout.vue';
 import VideoPlayer from '@/components/Course/VideoPlayer.vue';
 import QuizPlayer from '@/components/Course/QuizPlayer.vue';
 import api from '@/api';
 
 const route = useRoute();
+const router = useRouter();
 
 // State
 const course = ref({});
@@ -267,6 +341,7 @@ const currentLesson = ref({});
 const currentLessonProgress = ref({});
 const currentLessonAttempts = ref([]);
 const loading = ref(true);
+const courseCompleted = ref(false);
 
 // Computed
 const courseId = computed(() => route.params.id);
@@ -313,9 +388,9 @@ const loadCurrentLesson = async () => {
         }
         
         // If all lessons completed, use last lesson
-        if (!targetLesson && course.value.modules?.length > 0) {
+        if (!targetLesson && course.value && course.value.modules && course.value.modules.length > 0) {
             const lastModule = course.value.modules[course.value.modules.length - 1];
-            if (lastModule.lessons?.length > 0) {
+            if (lastModule && lastModule.lessons && lastModule.lessons.length > 0) {
                 targetLesson = lastModule.lessons[lastModule.lessons.length - 1];
             }
         }
@@ -383,13 +458,13 @@ const onNextLesson = () => {
 };
 
 const loadNextLesson = async () => {
-    // Find next incomplete lesson
+    // Find next lesson in sequence (regardless of completion status)
     let nextLesson = null;
     let foundCurrent = false;
     
     for (const module of course.value.modules || []) {
         for (const lesson of module.lessons || []) {
-            if (foundCurrent && !lesson.completed) {
+            if (foundCurrent) {
                 nextLesson = lesson;
                 break;
             }
@@ -404,6 +479,10 @@ const loadNextLesson = async () => {
         currentLesson.value = nextLesson;
         await loadLessonProgress();
         await loadLessonAttempts();
+    } else {
+        // No more lessons - course completed
+        courseCompleted.value = true;
+        console.log('Course completed!');
     }
 };
 
@@ -434,8 +513,29 @@ const updateCourseProgress = () => {
         }
     }
     
-    if (totalLessons > 0) {
+    if (totalLessons > 0 && course.value) {
         course.value.progress = Math.round((completedLessons / totalLessons) * 100);
+    }
+};
+
+const goToDashboard = () => {
+    router.push('/dashboard');
+};
+
+const goToMyCourses = () => {
+    router.push('/my-courses');
+};
+
+const formatDuration = (minutes) => {
+    if (!minutes || minutes === 0) return 'N/A';
+    
+    const hours = Math.floor(minutes / 60);
+    const remainingMinutes = minutes % 60;
+    
+    if (hours > 0) {
+        return remainingMinutes > 0 ? `${hours}h ${remainingMinutes}m` : `${hours}h`;
+    } else {
+        return `${minutes}m`;
     }
 };
 

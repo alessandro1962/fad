@@ -233,6 +233,7 @@
             Continua al Prossimo
           </button>
           <button
+            v-if="quizPassed"
             @click="reviewAnswers"
             class="px-6 py-3 border border-cdf-slate200 text-cdf-slate700 rounded-xl font-semibold hover:bg-cdf-slate50 transition-colors"
           >
@@ -242,7 +243,7 @@
       </div>
 
       <!-- Detailed Results -->
-      <div v-if="showDetailedResults" class="bg-white rounded-2xl shadow-sm border border-cdf-slate200 p-6">
+      <div v-if="showDetailedResults && quizPassed" class="bg-white rounded-2xl shadow-sm border border-cdf-slate200 p-6">
         <h4 class="text-lg font-bold text-cdf-deep mb-4">Dettaglio Risposte</h4>
         <div class="space-y-4">
           <div
@@ -305,6 +306,7 @@ const showDetailedResults = ref(false)
 const timeRemaining = ref(0)
 const timeLimit = ref(0)
 const timerInterval = ref(null)
+const quizAnswers = ref([])
 
 // Computed
 const currentQuestion = computed(() => {
@@ -334,20 +336,64 @@ const formatTime = (seconds) => {
   return `${minutes}:${secs.toString().padStart(2, '0')}`
 }
 
-const initializeQuiz = async () => {
-  quizData.value = props.lesson.payload || {}
-  totalQuestions.value = quizData.value.questions?.length || 0
-  timeLimit.value = (quizData.value.time_limit || 0) * 60 // Convert to seconds
-  timeRemaining.value = timeLimit.value
-  attemptNumber.value = props.userAttempts.length + 1
-  
-  // Initialize answers array
-  answers.value = new Array(totalQuestions.value).fill(null)
-  
-  // Start timer if time limit is set
-  if (timeLimit.value > 0) {
-    startTimer()
+const startQuizAttempt = async () => {
+  try {
+    const response = await api.post(`/v1/quizzes/${quizData.value.id}/start`)
+    currentAttemptId.value = response.data.data.attempt_id
+    attemptNumber.value = response.data.data.attempt_number
+  } catch (error) {
+    console.error('Errore nell\'avvio del quiz:', error)
+    // If there's already a pending attempt, use it
+    if (error.response?.status === 409) {
+      currentAttemptId.value = error.response.data.data.attempt_id
+    }
   }
+}
+
+const loadQuiz = async () => {
+  try {
+    // Load the quiz associated with this lesson
+    const response = await api.get(`/v1/lessons/${props.lesson.id}/quiz`)
+    quizData.value = response.data.data || {}
+    totalQuestions.value = quizData.value.questions?.length || 0
+    timeLimit.value = (quizData.value.time_limit_minutes || 0) * 60 // Convert to seconds
+    timeRemaining.value = timeLimit.value
+    attemptNumber.value = props.userAttempts.length + 1
+    
+    // Initialize answers array
+    answers.value = new Array(totalQuestions.value).fill(null)
+    
+    // Start a new quiz attempt
+    await startQuizAttempt()
+    
+    // Start timer if time limit is set
+    if (timeLimit.value > 0) {
+      startTimer()
+    }
+  } catch (error) {
+    console.error('Errore nel caricamento del quiz:', error)
+    
+    // Show error message to user
+    if (error.response?.status === 403) {
+      console.error('Accesso negato al quiz. Verifica di essere autenticato e iscritto al corso.')
+    }
+    
+    // Fallback to lesson payload if API fails
+    quizData.value = props.lesson.payload || {}
+    totalQuestions.value = quizData.value.questions?.length || 0
+    timeLimit.value = (quizData.value.time_limit || 0) * 60
+    timeRemaining.value = timeLimit.value
+    attemptNumber.value = props.userAttempts.length + 1
+    answers.value = new Array(totalQuestions.value).fill(null)
+    
+    if (timeLimit.value > 0) {
+      startTimer()
+    }
+  }
+}
+
+const initializeQuiz = async () => {
+  await loadQuiz()
 }
 
 const startTimer = () => {
@@ -373,24 +419,40 @@ const previousQuestion = () => {
 
 const submitQuiz = async () => {
   try {
+    // Check if quiz data is loaded
+    if (!quizData.value.id) {
+      console.error('Quiz data not loaded. Cannot submit quiz.')
+      return
+    }
+
     // Format answers for the API
-    const formattedAnswers = quizData.value.questions.map((question, index) => ({
-      question_id: question.id,
-      answer: answers.value[index]
-    }))
+    const formattedAnswers = quizData.value.questions.map((question, index) => {
+      let answer = answers.value[index]
+      
+      // For single_choice, convert index to actual option text
+      if (question.type === 'single_choice' && typeof answer === 'number') {
+        answer = question.options[answer]
+      }
+      
+      return {
+        question_id: question.id,
+        answer: answer
+      }
+    })
 
     const attemptData = {
-      attempt_id: currentAttemptId.value || 1, // We'll need to track this
+      attempt_id: currentAttemptId.value,
       answers: formattedAnswers
     }
 
-    const response = await api.post(`/v1/quizzes/${props.lesson.id}/submit`, attemptData)
+    const response = await api.post(`/v1/quizzes/${quizData.value.id}/submit`, attemptData)
     const result = response.data.data
 
     quizCompleted.value = true
     quizPassed.value = result.passed
-    finalScore.value = result.score
-    correctAnswers.value = result.answers
+    finalScore.value = result.percentage
+    correctAnswers.value = result.answers.filter(answer => answer.is_correct).length
+    quizAnswers.value = result.answers
     attemptNumber.value = result.attempt_id
 
     emit('quiz-completed', {
@@ -403,13 +465,21 @@ const submitQuiz = async () => {
   }
 }
 
-const retryQuiz = () => {
-  quizCompleted.value = false
-  quizPassed.value = false
-  answers.value = new Array(totalQuestions.value).fill(null)
-  currentQuestionIndex.value = 0
-  timeRemaining.value = timeLimit.value
-  showDetailedResults.value = false
+const retryQuiz = async () => {
+  try {
+    // Reset frontend state
+    quizCompleted.value = false
+    quizPassed.value = false
+    answers.value = new Array(totalQuestions.value).fill(null)
+    currentQuestionIndex.value = 0
+    timeRemaining.value = timeLimit.value
+    showDetailedResults.value = false
+    
+    // Start a new quiz attempt
+    await startQuizAttempt()
+  } catch (error) {
+    console.error('Errore nel riavvio del quiz:', error)
+  }
 }
 
 const proceedToNext = () => {
@@ -421,42 +491,33 @@ const reviewAnswers = () => {
 }
 
 const isAnswerCorrect = (questionIndex) => {
-  const question = quizData.value.questions[questionIndex]
-  const userAnswer = answers.value[questionIndex]
-  const correctAnswer = question.correct_answer
-
-  if (Array.isArray(correctAnswer)) {
-    return Array.isArray(userAnswer) && 
-           userAnswer.length === correctAnswer.length &&
-           userAnswer.every(answer => correctAnswer.includes(answer))
-  }
-
-  return userAnswer === correctAnswer
+  const answer = quizAnswers.value[questionIndex]
+  return answer ? answer.is_correct : false
 }
 
 const formatUserAnswer = (questionIndex) => {
-  const question = quizData.value.questions[questionIndex]
-  const userAnswer = answers.value[questionIndex]
-
-  if (question.type === 'single_choice' || question.type === 'true_false') {
-    return question.options[userAnswer] || 'Nessuna risposta'
-  } else if (question.type === 'multiple_choice') {
-    return userAnswer.map(index => question.options[index]).join(', ') || 'Nessuna risposta'
-  } else {
-    return userAnswer || 'Nessuna risposta'
-  }
+  const answer = quizAnswers.value[questionIndex]
+  return answer ? answer.answer : 'Nessuna risposta'
 }
 
 const formatCorrectAnswer = (questionIndex) => {
   const question = quizData.value.questions[questionIndex]
   const correctAnswer = question.correct_answer
 
+  // Handle JSON string format
+  let parsedAnswer = correctAnswer
+  if (typeof correctAnswer === 'string' && (correctAnswer.startsWith('[') || correctAnswer.startsWith('"'))) {
+    parsedAnswer = JSON.parse(correctAnswer)
+  }
+
   if (question.type === 'single_choice' || question.type === 'true_false') {
-    return question.options[correctAnswer] || 'N/A'
+    const index = Array.isArray(parsedAnswer) ? parsedAnswer[0] : parsedAnswer
+    return question.options[index] || 'N/A'
   } else if (question.type === 'multiple_choice') {
-    return correctAnswer.map(index => question.options[index]).join(', ') || 'N/A'
+    const indices = Array.isArray(parsedAnswer) ? parsedAnswer : [parsedAnswer]
+    return indices.map(index => question.options[index]).join(', ') || 'N/A'
   } else {
-    return correctAnswer || 'N/A'
+    return parsedAnswer || 'N/A'
   }
 }
 
