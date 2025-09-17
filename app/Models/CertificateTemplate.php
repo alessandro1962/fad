@@ -10,15 +10,20 @@ class CertificateTemplate extends Model
     protected $fillable = [
         'name',
         'description',
-        'template_type',
-        'html_template',
-        'settings',
-        'background_image',
+        'type',
+        'background_type',
+        'background_data',
+        'placeholder_positions',
+        'styling',
+        'is_default',
         'is_active',
+        'sort_order',
     ];
 
     protected $casts = [
-        'settings' => 'array',
+        'placeholder_positions' => 'array',
+        'styling' => 'array',
+        'is_default' => 'boolean',
         'is_active' => 'boolean',
     ];
 
@@ -43,13 +48,21 @@ class CertificateTemplate extends Model
      */
     public function scopeOfType($query, $type)
     {
-        return $query->where('template_type', $type);
+        return $query->where('type', $type);
     }
 
     /**
-     * Get the default settings for the template.
+     * Scope a query to only include default templates.
      */
-    public function getDefaultSettingsAttribute()
+    public function scopeDefault($query)
+    {
+        return $query->where('is_default', true);
+    }
+
+    /**
+     * Get the default styling for the template.
+     */
+    public function getDefaultStylingAttribute()
     {
         return array_merge([
             'font_family' => 'Inter',
@@ -61,6 +74,20 @@ class CertificateTemplate extends Model
             'background_color' => '#F4F1EA',
             'logo_position' => 'top-left',
             'signature_position' => 'bottom-right',
-        ], $this->settings ?? []);
+        ], $this->styling ?? []);
+    }
+
+    /**
+     * Get the default placeholder positions.
+     */
+    public function getDefaultPlaceholderPositionsAttribute()
+    {
+        return array_merge([
+            'user_name' => ['x' => 50, 'y' => 40, 'align' => 'center'],
+            'course_title' => ['x' => 50, 'y' => 50, 'align' => 'center'],
+            'certificate_date' => ['x' => 20, 'y' => 80, 'align' => 'left'],
+            'signature' => ['x' => 80, 'y' => 80, 'align' => 'right'],
+            'certificate_id' => ['x' => 50, 'y' => 90, 'align' => 'center'],
+        ], $this->placeholder_positions ?? []);
     }
 }

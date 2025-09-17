@@ -27,7 +27,6 @@ class CertificateController extends Controller
         $user = $request->user();
         
         $certificates = $user->certificates()
-            ->with(['reference'])
             ->orderBy('created_at', 'desc')
             ->get()
             ->map(function ($certificate) {
@@ -35,12 +34,13 @@ class CertificateController extends Controller
                     'id' => $certificate->id,
                     'public_uid' => $certificate->public_uid,
                     'title' => $certificate->title,
-                    'type' => $certificate->reference_type,
-                    'reference_id' => $certificate->reference_id,
-                    'reference_title' => $certificate->reference->title ?? 'N/A',
-                    'issued_at' => $certificate->created_at->toISOString(),
-                    'has_pdf' => $certificate->hasPdf(),
-                    'public_url' => $certificate->publicUrl,
+                    'description' => $certificate->description,
+                    'kind' => $certificate->kind,
+                    'ref_id' => $certificate->ref_id,
+                    'issued_at' => $certificate->issued_at->toISOString(),
+                    'hours_total' => $certificate->hours_total,
+                    'pdf_path' => $certificate->pdf_path,
+                    'metadata' => $certificate->metadata,
                 ];
             });
 

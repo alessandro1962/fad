@@ -5,7 +5,7 @@
             <div class="flex items-center justify-between">
                 <div>
                     <h1 class="text-3xl font-bold mb-2">
-                        Benvenuto, {{ authStore.user?.first_name || 'Utente' }}! 👋
+                        Bentornato/a, {{ authStore.user?.first_name || 'Utente' }}! 👋
                     </h1>
                     <p class="text-lg opacity-90">
                         Continua il tuo percorso di formazione e raggiungi i tuoi obiettivi

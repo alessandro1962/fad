@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\V1;
 use App\Http\Controllers\Controller;
 use App\Models\Course;
 use App\Models\Enrollment;
+use App\Services\CertificateService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -117,6 +118,9 @@ class EnrollmentController extends Controller
                 'status' => 'completed',
                 'completed_at' => now(),
             ]);
+            
+            // Generate certificate for completed course
+            $this->generateCertificate($enrollment->user, $enrollment->course);
         }
 
         return response()->json([
@@ -165,5 +169,31 @@ class EnrollmentController extends Controller
                 'total' => $enrollments->total(),
             ],
         ]);
+    }
+
+    /**
+     * Generate certificate for completed course.
+     */
+    private function generateCertificate($user, $course)
+    {
+        try {
+            $certificateService = app(CertificateService::class);
+            
+            // Check if certificate already exists
+            $existingCertificate = $user->certificates()
+                ->where('kind', 'course')
+                ->where('ref_id', $course->id)
+                ->first();
+
+            if (!$existingCertificate) {
+                $certificate = $certificateService->generateCertificate($user, 'course', $course->id);
+                \Log::info("Certificate generated for user {$user->id} and course {$course->id}", [
+                    'certificate_id' => $certificate->id,
+                    'public_uid' => $certificate->public_uid
+                ]);
+            }
+        } catch (\Exception $e) {
+            \Log::error("Failed to generate certificate for user {$user->id} and course {$course->id}: " . $e->getMessage());
+        }
     }
 }

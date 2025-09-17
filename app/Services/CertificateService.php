@@ -28,8 +28,8 @@ class CertificateService
 
         // Check if certificate already exists
         $existingCertificate = $user->certificates()
-            ->where('reference_type', $referenceType)
-            ->where('reference_id', $referenceId)
+            ->where('kind', $referenceType)
+            ->where('ref_id', $referenceId)
             ->first();
 
         if ($existingCertificate) {
@@ -42,13 +42,16 @@ class CertificateService
         // Generate certificate
         $certificate = Certificate::create([
             'user_id' => $user->id,
-            'reference_type' => $referenceType,
-            'reference_id' => $referenceId,
+            'kind' => $referenceType,
+            'ref_id' => $referenceId,
             'title' => $this->generateCertificateTitle($reference, $referenceType),
-            'public_uid' => $this->generatePublicUid(),
+            'description' => "Attestato di partecipazione al corso: {$reference->title}",
+            'issued_at' => now(),
+            'hours_total' => $reference->duration_minutes ? round($reference->duration_minutes / 60, 1) : 1,
+            'public_uid' => Certificate::generatePublicUid(),
             'metadata' => [
                 'generated_at' => now()->toISOString(),
-                'user_name' => $user->name,
+                'user_name' => $user->first_name . ' ' . $user->last_name,
                 'user_email' => $user->email,
                 'reference_title' => $reference->title,
                 'template_id' => $template->id,
@@ -102,17 +105,22 @@ class CertificateService
         
         // Replace placeholders
         $replacements = [
-            '{{user_name}}' => $user->name,
-            '{{user_first_name}}' => $user->first_name ?? explode(' ', $user->name)[0],
-            '{{user_last_name}}' => $user->last_name ?? (count(explode(' ', $user->name)) > 1 ? explode(' ', $user->name)[1] : ''),
+            '{{user_name}}' => $user->first_name . ' ' . $user->last_name,
+            '{{user_first_name}}' => $user->first_name,
+            '{{user_last_name}}' => $user->last_name,
             '{{user_email}}' => $user->email,
+            '{{reference_title}}' => $reference->title,
             '{{course_title}}' => $reference->title,
             '{{course_description}}' => $reference->description ?? '',
             '{{certificate_title}}' => $certificate->title,
-            '{{certificate_date}}' => $certificate->created_at->format('d/m/Y'),
+            '{{certificate_date}}' => $certificate->issued_at->format('d/m/Y'),
+            '{{issued_at}}' => $certificate->issued_at->format('d/m/Y'),
+            '{{public_uid}}' => $certificate->public_uid,
             '{{certificate_public_uid}}' => $certificate->public_uid,
+            '{{hours_total}}' => $certificate->hours_total,
             '{{current_date}}' => now()->format('d/m/Y'),
             '{{current_year}}' => now()->year,
+            '{{city}}' => 'Roma',
         ];
         
         return str_replace(array_keys($replacements), array_values($replacements), $html);
@@ -123,9 +131,7 @@ class CertificateService
      */
     private function getDefaultTemplate(string $referenceType): CertificateTemplate
     {
-        $template = CertificateTemplate::active()
-            ->ofType($referenceType)
-            ->first();
+        $template = CertificateTemplate::where('is_active', true)->first();
 
         if (!$template) {
             // Create default template
@@ -133,6 +139,20 @@ class CertificateService
         }
 
         return $template;
+    }
+
+    /**
+     * Generate certificate title.
+     */
+    private function generateCertificateTitle($reference, string $referenceType): string
+    {
+        if ($referenceType === 'course') {
+            return "Attestato di Partecipazione - {$reference->title}";
+        } elseif ($referenceType === 'track') {
+            return "Certificazione - {$reference->title}";
+        }
+        
+        return "Attestato di Partecipazione";
     }
 
     /**
@@ -212,6 +232,24 @@ class CertificateService
                     right: 0;
                     height: 8px;
                     background: linear-gradient(90deg, #0B3B5E 0%, #00A7B7 50%, #FFC857 100%);
+                }
+                
+                .certificate::after {
+                    content: "✓";
+                    position: absolute;
+                    top: 20px;
+                    right: 20px;
+                    width: 60px;
+                    height: 60px;
+                    background: #00A7B7;
+                    border-radius: 50%;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    color: white;
+                    font-size: 24px;
+                    font-weight: bold;
+                    opacity: 0.1;
                 }
                 
                 .header {
@@ -323,6 +361,28 @@ class CertificateService
                     display: inline-block;
                     margin-top: 10px;
                 }
+                
+                .achievement-badge {
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    margin: 30px 0;
+                    padding: 20px;
+                    background: linear-gradient(135deg, #FFC857, #FFB347);
+                    border-radius: 15px;
+                    box-shadow: 0 8px 16px rgba(255, 200, 87, 0.3);
+                }
+                
+                .badge-icon {
+                    font-size: 32px;
+                    margin-right: 15px;
+                }
+                
+                .badge-text {
+                    font-size: 18px;
+                    font-weight: 600;
+                    color: #0B3B5E;
+                }
             </style>
         </head>
         <body>
@@ -341,14 +401,19 @@ class CertificateService
                     <div class="recipient">{{user_name}}</div>
                     
                     <p class="award-text">
-                        ha completato con successo il
+                        ha completato con successo il corso
                     </p>
                     
                     <div class="course-title">{{course_title}}</div>
                     
                     <p class="award-text">
-                        dimostrando competenza e dedizione nell\'apprendimento.
+                        con una durata di <strong>{{hours_total}} ore</strong>, dimostrando competenza e dedizione nell\'apprendimento.
                     </p>
+                    
+                    <div class="achievement-badge">
+                        <div class="badge-icon">🏆</div>
+                        <div class="badge-text">Completamento Riconosciuto</div>
+                    </div>
                 </div>
                 
                 <div class="date-section">
@@ -364,21 +429,14 @@ class CertificateService
                 
                 <div class="footer">
                     <p>Questo certificato è stato generato digitalmente e può essere verificato online.</p>
-                    <div class="certificate-id">ID: {{certificate_public_uid}}</div>
+                    <p>Luogo di rilascio: {{city}} | Data di completamento: {{issued_at}}</p>
+                    <div class="certificate-id">ID Certificato: {{certificate_public_uid}}</div>
                 </div>
             </div>
         </body>
         </html>';
     }
 
-    /**
-     * Generate certificate title.
-     */
-    private function generateCertificateTitle($reference, string $referenceType): string
-    {
-        $type = $referenceType === 'course' ? 'Corso' : 'Track';
-        return "Certificato di Completamento - {$type}: {$reference->title}";
-    }
 
     /**
      * Generate public UID for certificate.

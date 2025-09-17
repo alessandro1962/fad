@@ -523,11 +523,43 @@ class QuizController extends Controller
             ->count();
 
         $progressPercentage = round(($completedLessons / $totalLessons) * 100);
+        $wasCompleted = $enrollment->status === 'completed';
         
         $enrollment->update([
             'progress_percentage' => $progressPercentage,
             'status' => $progressPercentage >= 100 ? 'completed' : 'active',
             'completed_at' => $progressPercentage >= 100 ? now() : null,
         ]);
+
+        // Generate certificate if course was just completed
+        if ($progressPercentage >= 100 && !$wasCompleted) {
+            $this->generateCertificate($user, $course);
+        }
+    }
+
+    /**
+     * Generate certificate for completed course.
+     */
+    private function generateCertificate($user, $course)
+    {
+        try {
+            $certificateService = app(\App\Services\CertificateService::class);
+            
+            // Check if certificate already exists
+            $existingCertificate = $user->certificates()
+                ->where('kind', 'course')
+                ->where('ref_id', $course->id)
+                ->first();
+
+            if (!$existingCertificate) {
+                $certificate = $certificateService->generateCertificate($user, 'course', $course->id);
+                \Log::info("Certificate generated for user {$user->id} and course {$course->id}", [
+                    'certificate_id' => $certificate->id,
+                    'public_uid' => $certificate->public_uid
+                ]);
+            }
+        } catch (\Exception $e) {
+            \Log::error("Failed to generate certificate for user {$user->id} and course {$course->id}: " . $e->getMessage());
+        }
     }
 }

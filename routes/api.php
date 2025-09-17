@@ -97,6 +97,11 @@ Route::prefix('v1')->group(function () {
             
             // Module management
             Route::get('courses/{course}/modules', [App\Http\Controllers\Admin\ModuleController::class, 'index']);
+            
+            // Certificate Template management
+            Route::apiResource('certificate-templates', App\Http\Controllers\Admin\CertificateTemplateController::class);
+            Route::get('certificate-templates/{certificateTemplate}/preview', [App\Http\Controllers\Admin\CertificateTemplateController::class, 'preview']);
+            Route::patch('certificate-templates/{certificateTemplate}/set-default', [App\Http\Controllers\Admin\CertificateTemplateController::class, 'setDefault']);
             Route::post('courses/{course}/modules', [App\Http\Controllers\Admin\ModuleController::class, 'store']);
             Route::apiResource('modules', App\Http\Controllers\Admin\ModuleController::class)->except(['index', 'store']);
             Route::post('modules/reorder', [App\Http\Controllers\Admin\ModuleController::class, 'reorder']);

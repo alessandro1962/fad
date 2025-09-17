@@ -51,8 +51,29 @@
             </div>
         </div>
 
+        <!-- Loading State -->
+        <div v-if="loading" class="text-center py-12">
+            <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-cdf-teal"></div>
+            <p class="mt-4 text-cdf-slate700">Caricamento attestati...</p>
+        </div>
+
+        <!-- Error State -->
+        <div v-else-if="error" class="text-center py-12">
+            <div class="text-red-500 mb-4">{{ error }}</div>
+            <button @click="loadCertificates" class="bg-cdf-teal text-white px-4 py-2 rounded-lg hover:bg-cdf-deep transition-colors">
+                Riprova
+            </button>
+        </div>
+
+        <!-- Empty State -->
+        <div v-else-if="certificates.length === 0" class="text-center py-12">
+            <div class="text-6xl mb-4">📜</div>
+            <h3 class="text-xl font-semibold text-cdf-deep mb-2">Nessun attestato disponibile</h3>
+            <p class="text-cdf-slate700">Completa i tuoi corsi per ottenere i primi attestati!</p>
+        </div>
+
         <!-- Certificates Grid -->
-        <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div v-else class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
             <div 
                 v-for="certificate in certificates" 
                 :key="certificate.id"
@@ -66,7 +87,7 @@
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
                             </svg>
                         </div>
-                        <p class="text-sm font-medium text-cdf-deep">{{ certificate.type }}</p>
+                        <p class="text-sm font-medium text-cdf-deep">{{ certificate.kind === 'course' ? 'Corso' : 'Percorso' }}</p>
                     </div>
                     
                     <!-- Verification Badge -->
@@ -85,9 +106,9 @@
                         <h3 class="text-lg font-bold text-cdf-deep">{{ certificate.title }}</h3>
                         <span 
                             class="px-2 py-1 rounded-lg text-xs font-medium"
-                            :class="getTypeBadgeClass(certificate.type)"
+                            :class="getTypeBadgeClass(certificate.kind)"
                         >
-                            {{ certificate.type }}
+                            {{ certificate.kind === 'course' ? 'Corso' : 'Percorso' }}
                         </span>
                     </div>
                     
@@ -97,15 +118,15 @@
                     <div class="space-y-2 mb-4">
                         <div class="flex items-center justify-between text-sm">
                             <span class="text-cdf-slate700">Rilasciato il:</span>
-                            <span class="font-medium text-cdf-deep">{{ certificate.issuedAt }}</span>
+                            <span class="font-medium text-cdf-deep">{{ new Date(certificate.issued_at).toLocaleDateString('it-IT') }}</span>
                         </div>
                         <div class="flex items-center justify-between text-sm">
                             <span class="text-cdf-slate700">Durata:</span>
-                            <span class="font-medium text-cdf-deep">{{ certificate.duration }}</span>
+                            <span class="font-medium text-cdf-deep">{{ certificate.hours_total }} ore</span>
                         </div>
                         <div class="flex items-center justify-between text-sm">
                             <span class="text-cdf-slate700">ID Certificato:</span>
-                            <span class="font-mono text-xs text-cdf-slate700">{{ certificate.certificateId }}</span>
+                            <span class="font-mono text-xs text-cdf-slate700">{{ certificate.public_uid }}</span>
                         </div>
                     </div>
 
@@ -209,57 +230,48 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import AppLayout from '@/components/Layout/AppLayout.vue';
 import { useAuthStore } from '@/stores/auth';
+import api from '@/api';
 
 const authStore = useAuthStore();
 const showVerificationModal = ref(false);
 const selectedCertificate = ref(null);
 
-// Sample certificates data
-const certificates = [
-    {
-        id: 1,
-        title: 'Cybersecurity Base',
-        description: 'Certificazione in fondamenti di sicurezza informatica',
-        type: 'Corso',
-        issuedAt: '15 Gen 2024',
-        duration: '3 ore',
-        certificateId: 'CDF-CYB-2024-001',
-        publicUrl: 'https://campusdigitale.it/certs/CDF-CYB-2024-001'
-    },
-    {
-        id: 2,
-        title: 'GDPR per Incaricati',
-        description: 'Certificazione in gestione dati personali secondo GDPR',
-        type: 'Corso',
-        issuedAt: '10 Gen 2024',
-        duration: '4 ore',
-        certificateId: 'CDF-GDPR-2024-002',
-        publicUrl: 'https://campusdigitale.it/certs/CDF-GDPR-2024-002'
-    },
-    {
-        id: 3,
-        title: 'Percorso Privacy Completo',
-        description: 'Certificazione completa in privacy e protezione dati',
-        type: 'Percorso',
-        issuedAt: '5 Dic 2023',
-        duration: '12 ore',
-        certificateId: 'CDF-PATH-2023-001',
-        publicUrl: 'https://campusdigitale.it/certs/CDF-PATH-2023-001'
-    }
-];
+// Real certificates data - loaded from API
+const certificates = ref([]);
+const loading = ref(true);
+const error = ref(null);
 
 const totalHours = computed(() => {
-    return certificates.reduce((total, cert) => {
-        const hours = parseInt(cert.duration);
+    return certificates.value.reduce((total, cert) => {
+        const hours = cert.hours_total || 0;
         return total + hours;
     }, 0);
 });
 
-const getTypeBadgeClass = (type) => {
-    return type === 'Percorso' 
+// Load certificates from API
+const loadCertificates = async () => {
+    try {
+        loading.value = true;
+        const response = await api.get('/v1/certificates');
+        certificates.value = response.data.data || [];
+    } catch (err) {
+        console.error('Error loading certificates:', err);
+        error.value = 'Errore nel caricamento degli attestati';
+    } finally {
+        loading.value = false;
+    }
+};
+
+// Load certificates on component mount
+onMounted(() => {
+    loadCertificates();
+});
+
+const getTypeBadgeClass = (kind) => {
+    return kind === 'track' 
         ? 'bg-cdf-teal/10 text-cdf-teal' 
         : 'bg-cdf-amber/10 text-cdf-amber';
 };
@@ -269,9 +281,46 @@ const viewCertificate = (certificate) => {
     showVerificationModal.value = true;
 };
 
-const downloadCertificate = (certificate) => {
-    console.log('Download certificate:', certificate);
-    // Implement download functionality
+const downloadCertificate = async (certificate) => {
+    try {
+        console.log('Downloading certificate:', certificate);
+        
+        // Create download URL
+        const downloadUrl = `/api/v1/certificates/${certificate.id}/download`;
+        
+        // Create a temporary link element and trigger download
+        const link = document.createElement('a');
+        link.href = downloadUrl;
+        link.download = `${certificate.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.pdf`;
+        
+        // Add authentication header by using fetch first
+        const response = await fetch(downloadUrl, {
+            method: 'GET',
+            headers: {
+                'Authorization': `Bearer ${authStore.token}`,
+                'Accept': 'application/pdf'
+            }
+        });
+        
+        if (response.ok) {
+            // Get the blob from response
+            const blob = await response.blob();
+            
+            // Create object URL and trigger download
+            const url = window.URL.createObjectURL(blob);
+            link.href = url;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            window.URL.revokeObjectURL(url);
+        } else {
+            console.error('Download failed:', response.status, response.statusText);
+            alert('Errore nel download dell\'attestato. Riprova più tardi.');
+        }
+    } catch (error) {
+        console.error('Error downloading certificate:', error);
+        alert('Errore nel download dell\'attestato. Riprova più tardi.');
+    }
 };
 
 const shareCertificate = (certificate) => {
