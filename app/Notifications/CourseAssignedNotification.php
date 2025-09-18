@@ -2,24 +2,21 @@
 
 namespace App\Notifications;
 
-use App\Models\Course;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 
-class CourseCompletedNotification extends Notification implements ShouldQueue
+class CourseAssignedNotification extends Notification
 {
     use Queueable;
-
-    protected Course $course;
 
     /**
      * Create a new notification instance.
      */
-    public function __construct(Course $course)
+    public function __construct()
     {
-        $this->course = $course;
+        //
     }
 
     /**
@@ -29,7 +26,7 @@ class CourseCompletedNotification extends Notification implements ShouldQueue
      */
     public function via(object $notifiable): array
     {
-        return ['database', 'mail'];
+        return ['mail'];
     }
 
     /**
@@ -38,11 +35,9 @@ class CourseCompletedNotification extends Notification implements ShouldQueue
     public function toMail(object $notifiable): MailMessage
     {
         return (new MailMessage)
-            ->subject('🎉 Corso completato: ' . $this->course->title)
-            ->view('emails.course-completed', [
-                'user' => $notifiable,
-                'course' => $this->course
-            ]);
+            ->line('The introduction to the notification.')
+            ->action('Notification Action', url('/'))
+            ->line('Thank you for using our application!');
     }
 
     /**
@@ -53,12 +48,7 @@ class CourseCompletedNotification extends Notification implements ShouldQueue
     public function toArray(object $notifiable): array
     {
         return [
-            'type' => 'course_completed',
-            'course_id' => $this->course->id,
-            'course_title' => $this->course->title,
-            'course_description' => $this->course->description,
-            'course_image' => $this->course->image_url,
-            'message' => "Hai completato il corso {$this->course->title}!",
+            //
         ];
     }
 }

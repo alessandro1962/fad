@@ -2,24 +2,24 @@
 
 namespace App\Notifications;
 
-use App\Models\Course;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
+use App\Models\User;
 
-class CourseCompletedNotification extends Notification implements ShouldQueue
+class UserRegisteredNotification extends Notification implements ShouldQueue
 {
     use Queueable;
 
-    protected Course $course;
+    protected $user;
 
     /**
      * Create a new notification instance.
      */
-    public function __construct(Course $course)
+    public function __construct(User $user)
     {
-        $this->course = $course;
+        $this->user = $user;
     }
 
     /**
@@ -29,7 +29,7 @@ class CourseCompletedNotification extends Notification implements ShouldQueue
      */
     public function via(object $notifiable): array
     {
-        return ['database', 'mail'];
+        return ['mail', 'database'];
     }
 
     /**
@@ -38,11 +38,8 @@ class CourseCompletedNotification extends Notification implements ShouldQueue
     public function toMail(object $notifiable): MailMessage
     {
         return (new MailMessage)
-            ->subject('🎉 Corso completato: ' . $this->course->title)
-            ->view('emails.course-completed', [
-                'user' => $notifiable,
-                'course' => $this->course
-            ]);
+            ->subject('Benvenuto su Campus Digitale Forma! 🎉')
+            ->view('emails.user-registered', ['user' => $this->user]);
     }
 
     /**
@@ -53,12 +50,12 @@ class CourseCompletedNotification extends Notification implements ShouldQueue
     public function toArray(object $notifiable): array
     {
         return [
-            'type' => 'course_completed',
-            'course_id' => $this->course->id,
-            'course_title' => $this->course->title,
-            'course_description' => $this->course->description,
-            'course_image' => $this->course->image_url,
-            'message' => "Hai completato il corso {$this->course->title}!",
+            'type' => 'user_registered',
+            'title' => 'Benvenuto su Campus Digitale Forma!',
+            'message' => 'Il tuo account è stato creato con successo. Inizia subito il tuo percorso di apprendimento!',
+            'user_id' => $this->user->id,
+            'action_url' => url('/dashboard'),
+            'action_text' => 'Accedi alla Dashboard'
         ];
     }
 }
