@@ -25,34 +25,40 @@
                 <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
                     <div>
                         <label class="block text-sm font-medium text-cdf-deep mb-2">Livello</label>
-                        <select class="input-field">
-                            <option>Tutti i livelli</option>
-                            <option>Principiante</option>
-                            <option>Intermedio</option>
-                            <option>Esperto</option>
+                        <select v-model="filters.level" @change="applyFilters" class="input-field">
+                            <option value="">Tutti i livelli</option>
+                            <option value="beginner">Principiante</option>
+                            <option value="intermediate">Intermedio</option>
+                            <option value="expert">Esperto</option>
                         </select>
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-cdf-deep mb-2">Categoria</label>
-                        <select class="input-field">
-                            <option>Tutte le categorie</option>
-                            <option>Cybersecurity</option>
-                            <option>GDPR</option>
-                            <option>NIS2</option>
-                            <option>Privacy</option>
+                        <select v-model="filters.category" @change="applyFilters" class="input-field">
+                            <option value="">Tutte le categorie</option>
+                            <option value="Cybersecurity">Cybersecurity</option>
+                            <option value="GDPR">GDPR</option>
+                            <option value="NIS2">NIS2</option>
+                            <option value="Privacy">Privacy</option>
+                            <option value="Sicurezza">Sicurezza</option>
+                            <option value="Email">Email</option>
+                            <option value="Social Media">Social Media</option>
+                            <option value="Educazione">Educazione</option>
+                            <option value="Accessibilità">Accessibilità</option>
                         </select>
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-cdf-deep mb-2">Durata</label>
-                        <select class="input-field">
-                            <option>Qualsiasi durata</option>
-                            <option>0-2 ore</option>
-                            <option>2-5 ore</option>
-                            <option>5+ ore</option>
+                        <select v-model="filters.duration" @change="applyFilters" class="input-field">
+                            <option value="">Qualsiasi durata</option>
+                            <option value="0-2">0-2 ore</option>
+                            <option value="2-5">2-5 ore</option>
+                            <option value="5+">5+ ore</option>
                         </select>
                     </div>
-                    <div class="flex items-end">
-                        <button class="btn-primary w-full">Filtra</button>
+                    <div class="flex items-end gap-2">
+                        <button @click="applyFilters" class="btn-primary flex-1">Filtra</button>
+                        <button @click="clearFilters" class="btn-secondary">Reset</button>
                     </div>
                 </div>
             </div>
@@ -74,8 +80,31 @@
                 <button @click="loadCourses" class="btn-primary">Riprova</button>
             </div>
 
+            <!-- Results Count -->
+            <div v-if="!loading && !error && courses.length > 0" class="mb-6">
+                <p class="text-cdf-slate700">
+                    <span class="font-semibold">{{ courses.length }}</span> 
+                    {{ courses.length === 1 ? 'corso trovato' : 'corsi trovati' }}
+                    <span v-if="courses.length !== allCourses.length" class="text-cdf-teal">
+                        (filtrati da {{ allCourses.length }} totali)
+                    </span>
+                </p>
+            </div>
+
+            <!-- No Results -->
+            <div v-else-if="!loading && !error && courses.length === 0" class="text-center py-12">
+                <div class="text-cdf-slate400 mb-4">
+                    <svg class="w-16 h-16 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.172 16.172a4 4 0 015.656 0M9 12h6m-6-4h6m2 5.291A7.962 7.962 0 0112 15c-2.34 0-4.29-1.009-5.824-2.709M15 6.291A7.962 7.962 0 0012 5c-2.34 0-4.29 1.009-5.824 2.709"></path>
+                    </svg>
+                </div>
+                <h3 class="text-lg font-semibold text-cdf-slate700 mb-2">Nessun corso trovato</h3>
+                <p class="text-cdf-slate600 mb-4">Prova a modificare i filtri o resettarli per vedere tutti i corsi disponibili.</p>
+                <button @click="clearFilters" class="btn-primary">Reset Filtri</button>
+            </div>
+
             <!-- Courses Grid -->
-            <div v-else class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div v-if="!loading && !error && courses.length > 0" class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
                 <CourseCard
                     v-for="course in courses"
                     :key="course.id"
@@ -118,8 +147,16 @@ const authStore = useAuthStore();
 
 // Reactive data
 const courses = ref([]);
+const allCourses = ref([]); // Store all courses for client-side filtering
 const loading = ref(true);
 const error = ref(null);
+
+// Filters
+const filters = ref({
+    level: '',
+    category: '',
+    duration: ''
+});
 
 // Load courses from API
 const loadCourses = async () => {
@@ -128,14 +165,15 @@ const loadCourses = async () => {
         const response = await axios.get('/api/v1/courses?per_page=100');
         
         // Transform API data to match CourseCard component expectations
-        courses.value = response.data.data.map(course => ({
+        const transformedCourses = response.data.data.map(course => ({
             id: course.id,
             title: course.title,
             slug: course.slug,
             description: course.summary || course.description,
             category: getCategoryFromTitle(course.title),
-            level: getLevelFromTitle(course.title),
+            level: course.level || 'beginner', // Use real level from database
             duration: course.duration_hours ? `${course.duration_hours} ore` : 'N/A',
+            durationHours: course.duration_hours || 0, // For filtering
             modules: course.modules_count || 0,
             price: course.price_euros ? `€${course.price_euros}` : 'Gratuito',
             rating: 4.5, // Default rating
@@ -146,6 +184,9 @@ const loadCourses = async () => {
             // Keep original data for other uses
             original: course
         }));
+        
+        allCourses.value = transformedCourses;
+        courses.value = transformedCourses;
     } catch (err) {
         error.value = 'Errore nel caricamento dei corsi';
         console.error('Error loading courses:', err);
@@ -191,6 +232,53 @@ const goToFullVision = () => {
 
 const goToDashboard = () => {
     router.push('/dashboard');
+};
+
+// Filter functions
+const applyFilters = () => {
+    let filteredCourses = [...allCourses.value];
+    
+    // Filter by level
+    if (filters.value.level) {
+        filteredCourses = filteredCourses.filter(course => 
+            course.level === filters.value.level
+        );
+    }
+    
+    // Filter by category
+    if (filters.value.category) {
+        filteredCourses = filteredCourses.filter(course => 
+            course.category === filters.value.category
+        );
+    }
+    
+    // Filter by duration
+    if (filters.value.duration) {
+        filteredCourses = filteredCourses.filter(course => {
+            const hours = course.durationHours;
+            switch (filters.value.duration) {
+                case '0-2':
+                    return hours >= 0 && hours <= 2;
+                case '2-5':
+                    return hours > 2 && hours <= 5;
+                case '5+':
+                    return hours > 5;
+                default:
+                    return true;
+            }
+        });
+    }
+    
+    courses.value = filteredCourses;
+};
+
+const clearFilters = () => {
+    filters.value = {
+        level: '',
+        category: '',
+        duration: ''
+    };
+    courses.value = [...allCourses.value];
 };
 
 // Load courses on component mount
