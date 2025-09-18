@@ -13,6 +13,14 @@
             margin: 0;
             padding: 0;
         }
+        
+        /* SendGrid tracking pixel compatibility */
+        .sg-image {
+            display: block;
+            width: 1px;
+            height: 1px;
+            overflow: hidden;
+        }
         .container {
             max-width: 600px;
             margin: 0 auto;
@@ -167,6 +175,11 @@
                 <a href="{{ url('/unsubscribe') }}">Disiscriviti</a> dalle notifiche email.
             </p>
         </div>
+    </div>
+    
+    <!-- SendGrid tracking pixel -->
+    <div class="sg-image">
+        <img src="https://sendgrid.com/track/open/{{ $trackingId ?? 'default' }}" alt="" width="1" height="1" style="display: block; width: 1px; height: 1px; overflow: hidden;">
     </div>
 </body>
 </html>

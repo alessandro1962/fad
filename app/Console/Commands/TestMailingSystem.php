@@ -9,6 +9,7 @@ use App\Models\Module;
 use App\Events\UserRegistered;
 use App\Events\ModuleCompleted;
 use App\Events\CourseCompleted;
+use App\Services\SendGridService;
 
 class TestMailingSystem extends Command
 {
@@ -17,7 +18,7 @@ class TestMailingSystem extends Command
      *
      * @var string
      */
-    protected $signature = 'mailing:test {--type=all : Tipo di test (all, registration, module, course)}';
+    protected $signature = 'mailing:test {--type=all : Tipo di test (all, registration, module, course, sendgrid)}';
 
     /**
      * The console command description.
@@ -46,11 +47,15 @@ class TestMailingSystem extends Command
             case 'course':
                 $this->testCourseCompletion();
                 break;
+            case 'sendgrid':
+                $this->testSendGridConnection();
+                break;
             case 'all':
             default:
                 $this->testUserRegistration();
                 $this->testModuleCompletion();
                 $this->testCourseCompletion();
+                $this->testSendGridConnection();
                 break;
         }
         
@@ -110,5 +115,23 @@ class TestMailingSystem extends Command
         event(new CourseCompleted($course));
         
         $this->line("✅ Evento CourseCompleted inviato per: {$user->name} - {$course->title}");
+    }
+    
+    private function testSendGridConnection()
+    {
+        $this->info('📧 Test: Connessione SendGrid');
+        
+        try {
+            $sendGridService = new SendGridService();
+            $result = $sendGridService->testConnection();
+            
+            if ($result['success']) {
+                $this->line("✅ Connessione SendGrid verificata (Status: {$result['status_code']})");
+            } else {
+                $this->error("❌ Connessione SendGrid fallita: {$result['error']}");
+            }
+        } catch (\Exception $e) {
+            $this->error("❌ Errore SendGrid: {$e->getMessage()}");
+        }
     }
 }
