@@ -32,9 +32,9 @@
                   Guarda almeno il {{ Math.round(completionThreshold * 100) }}% del video per sbloccare la prossima lezione.
                 </p>
                 <div class="text-xs text-cdf-teal font-semibold mb-3 space-y-1">
-                  <p>▶️ Per far partire il video: clicca sul video</p>
-                  <p>⏸️ Per metterlo in pausa: clicca sul video</p>
-                  <p>▶️ Per farlo ripartire: riclicca sul video</p>
+                  <p>▶️ Per far partire il video: clicca sul pulsante play</p>
+                  <p>⏸️ Per metterlo in pausa: clicca sul pulsante pausa</p>
+                  <p>▶️ Per farlo ripartire: riclicca sul pulsante play</p>
                 </div>
                 <p class="text-xs text-gray-400 mb-3">
                   I video di Campus Digitale Forma sono realizzati in modo da non poter mandarli avanti meccanicamente.
@@ -49,57 +49,28 @@
             </div>
           </div>
           
-          <!-- Progress Bar (Custom) -->
-          <div class="absolute bottom-0 left-0 right-0 p-4 pointer-events-auto">
-            <div class="w-full bg-white/20 rounded-full h-1 mb-2">
-              <div 
-                class="bg-cdf-teal h-1 rounded-full transition-all duration-300"
-                :style="{ width: `${progressPercentage}%` }"
-              ></div>
-            </div>
-            <div class="flex justify-between items-center text-white text-sm">
-              <div class="flex gap-2">
-                <span>{{ formatTime(watchedTime) }}</span>
-                <span>/</span>
-                <span>{{ formatTime(totalDuration) }}</span>
-              </div>
-              <div class="flex items-center gap-2">
-                <span class="text-xs">{{ Math.round(progressPercentage) }}%</span>
-              </div>
-            </div>
+          <!-- Video Controls -->
+          <div class="absolute bottom-4 left-4 right-4 flex items-center justify-center gap-4 pointer-events-auto">
+            <button
+              @click="simulateVideoControl"
+              v-if="!isVideoPlaying"
+              class="bg-cdf-teal/90 hover:bg-cdf-teal text-white p-3 rounded-full transition-colors"
+            >
+              <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M8 5v14l11-7z"/>
+              </svg>
+            </button>
+            <button
+              @click="pauseVideo"
+              v-if="isVideoPlaying"
+              class="bg-cdf-teal/90 hover:bg-cdf-teal text-white p-3 rounded-full transition-colors"
+            >
+              <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>
+              </svg>
+            </button>
           </div>
-        </div>
-      </div>
-      
-      <!-- Complete Lesson Button (Outside iframe area for Vimeo) -->
-      <div v-if="videoProvider === 'vimeo'" class="mt-4 text-center">
-        <div v-if="!isCompleted" class="mb-4">
-          <button
-            @click="markAsCompleted"
-            :class="progressPercentage >= 90 ? 
-              'bg-cdf-teal text-white hover:bg-cdf-deep' : 
-              'bg-cdf-amber text-cdf-ink hover:brightness-95'"
-            class="px-6 py-3 rounded-lg font-semibold transition-colors shadow-lg"
-          >
-            {{ progressPercentage >= 90 ? '✅ Completa Lezione' : '⏭️ Completa Manualmente' }}
-          </button>
-          <p class="text-sm text-cdf-slate600 mt-2">
-            {{ progressPercentage >= 90 ? 
-              `Hai visto il ${Math.round(progressPercentage)}% del video. Clicca per completare la lezione.` :
-              `Progresso: ${Math.round(progressPercentage)}%. Clicca per completare manualmente la lezione.`
-            }}
-          </p>
-        </div>
-        <div v-else class="mb-4">
-          <button
-            @click="proceedToNext"
-            class="bg-cdf-amber text-cdf-ink px-6 py-3 rounded-lg font-semibold hover:brightness-95 transition-colors shadow-lg"
-          >
-            ➡️ Continua al Prossimo
-          </button>
-          <p class="text-sm text-cdf-slate600 mt-2">
-            Lezione completata! Clicca per passare alla prossima lezione.
-          </p>
+          
         </div>
       </div>
 
@@ -115,38 +86,6 @@
           @load="onPlayerLoad"
         ></iframe>
       </div>
-      
-      <!-- Complete Lesson Button (Outside iframe area for YouTube) -->
-      <div v-if="videoProvider === 'youtube'" class="mt-4 text-center">
-        <div v-if="!isCompleted" class="mb-4">
-          <button
-            @click="markAsCompleted"
-            :class="progressPercentage >= 90 ? 
-              'bg-cdf-teal text-white hover:bg-cdf-deep' : 
-              'bg-cdf-amber text-cdf-ink hover:brightness-95'"
-            class="px-6 py-3 rounded-lg font-semibold transition-colors shadow-lg"
-          >
-            {{ progressPercentage >= 90 ? '✅ Completa Lezione' : '⏭️ Completa Manualmente' }}
-          </button>
-          <p class="text-sm text-cdf-slate600 mt-2">
-            {{ progressPercentage >= 90 ? 
-              `Hai visto il ${Math.round(progressPercentage)}% del video. Clicca per completare la lezione.` :
-              `Progresso: ${Math.round(progressPercentage)}%. Clicca per completare manualmente la lezione.`
-            }}
-          </p>
-        </div>
-        <div v-else class="mb-4">
-          <button
-            @click="proceedToNext"
-            class="bg-cdf-amber text-cdf-ink px-6 py-3 rounded-lg font-semibold hover:brightness-95 transition-colors shadow-lg"
-          >
-            ➡️ Continua al Prossimo
-          </button>
-          <p class="text-sm text-cdf-slate600 mt-2">
-            Lezione completata! Clicca per passare alla prossima lezione.
-          </p>
-        </div>
-      </div>
 
       <!-- Uploaded Video -->
       <div v-else-if="videoProvider === 'upload'" class="aspect-video">
@@ -161,38 +100,6 @@
           @pause="onVideoPause"
           @play="onVideoPlay"
         ></video>
-      </div>
-      
-      <!-- Complete Lesson Button (Outside video area for uploaded videos) -->
-      <div v-if="videoProvider === 'upload'" class="mt-4 text-center">
-        <div v-if="!isCompleted" class="mb-4">
-          <button
-            @click="markAsCompleted"
-            :class="progressPercentage >= 90 ? 
-              'bg-cdf-teal text-white hover:bg-cdf-deep' : 
-              'bg-cdf-amber text-cdf-ink hover:brightness-95'"
-            class="px-6 py-3 rounded-lg font-semibold transition-colors shadow-lg"
-          >
-            {{ progressPercentage >= 90 ? '✅ Completa Lezione' : '⏭️ Completa Manualmente' }}
-          </button>
-          <p class="text-sm text-cdf-slate600 mt-2">
-            {{ progressPercentage >= 90 ? 
-              `Hai visto il ${Math.round(progressPercentage)}% del video. Clicca per completare la lezione.` :
-              `Progresso: ${Math.round(progressPercentage)}%. Clicca per completare manualmente la lezione.`
-            }}
-          </p>
-        </div>
-        <div v-else class="mb-4">
-          <button
-            @click="proceedToNext"
-            class="bg-cdf-amber text-cdf-ink px-6 py-3 rounded-lg font-semibold hover:brightness-95 transition-colors shadow-lg"
-          >
-            ➡️ Continua al Prossimo
-          </button>
-          <p class="text-sm text-cdf-slate600 mt-2">
-            Lezione completata! Clicca per passare alla prossima lezione.
-          </p>
-        </div>
       </div>
 
       <!-- Loading Overlay -->
@@ -241,6 +148,14 @@
 
     <!-- Video Controls -->
     <div class="mt-4 space-y-4">
+      <!-- Progress Bar -->
+      <div class="w-full bg-cdf-slate200 rounded-full h-2">
+        <div 
+          class="bg-gradient-to-r from-cdf-teal to-cdf-deep h-2 rounded-full transition-all duration-500"
+          :style="{ width: `${progressPercentage}%` }"
+        ></div>
+      </div>
+      
       <!-- Progress Info -->
       <div class="flex items-center justify-between text-sm text-cdf-slate700">
         <span>Durata: {{ formatTime(totalDuration) }}</span>
@@ -408,63 +323,17 @@ const onPlayerLoad = () => {
   loading.value = false
   initializeProgressTracking()
   
-  // Per Vimeo, aggiungiamo un listener per il completamento
+  // Per Vimeo, imposta la durata e avvia il timer
   if (videoProvider.value === 'vimeo') {
-    setupVimeoCompletionTracking()
-  }
-}
-
-const setupVimeoCompletionTracking = () => {
-  // Per i video Vimeo, usiamo un sistema di tracciamento semplificato
-  // Impostiamo una durata stimata e permettiamo il completamento manuale
-  
-  // Stima la durata del video (in secondi) - puoi modificare questo valore
-  const estimatedDuration = props.lesson.duration_minutes ? props.lesson.duration_minutes * 60 : 300 // 5 minuti di default
-  totalDuration.value = estimatedDuration
-  
-  // Avvia un timer per simulare il progresso
-  const progressTimer = setInterval(() => {
-    // Incrementa gradualmente il tempo guardato
-    watchedTime.value = Math.min(watchedTime.value + 1, totalDuration.value)
+    // Stima la durata del video (in secondi)
+    const estimatedDuration = props.lesson.duration_minutes ? props.lesson.duration_minutes * 60 : 300 // 5 minuti di default
+    totalDuration.value = estimatedDuration
     
-    // Salva il progresso ogni 10 secondi (ma solo se non ci sono errori di auth)
-    if (watchedTime.value % 10 === 0) {
-      // Non salvare automaticamente se ci sono problemi di autenticazione
-      // saveProgress()
-    }
-  }, 1000) // Aggiorna ogni secondo
-  
-  // Pulisci il timer quando il componente viene distrutto
-  onUnmounted(() => {
-    clearInterval(progressTimer)
-  })
-  
-  // Listener per messaggi dall'iframe di Vimeo (se disponibile)
-  const handleMessage = (event) => {
-    if (event.origin !== 'https://player.vimeo.com') return
-    
-    try {
-      const data = JSON.parse(event.data)
-      if (data.method === 'getCurrentTime' && data.value !== undefined) {
-        const currentTime = data.value
-        const duration = data.duration || totalDuration.value
-        
-        if (duration > 0) {
-          totalDuration.value = duration
-          watchedTime.value = Math.max(watchedTime.value, currentTime)
-        }
-      }
-    } catch (error) {
-      // Ignora errori di parsing
-    }
+    // Avvia il timer solo se l'utente è autenticato
+    setTimeout(() => {
+      startProgressTimer()
+    }, 2000)
   }
-  
-  window.addEventListener('message', handleMessage)
-  
-  // Pulisci il listener quando il componente viene distrutto
-  onUnmounted(() => {
-    window.removeEventListener('message', handleMessage)
-  })
 }
 
 // Vimeo iframe player - no API needed
@@ -477,6 +346,49 @@ const hideProgressOverlay = () => {
 
 const hideInstructions = () => {
   showInstructions.value = false
+}
+
+// Timer per il progresso
+let progressTimer = null
+let isVideoPlaying = ref(false)
+
+const startProgressTimer = () => {
+  if (progressTimer) return // Timer già attivo
+  
+  progressTimer = setInterval(() => {
+    // Incrementa gradualmente il tempo guardato solo se il video è in riproduzione
+    if (isVideoPlaying.value) {
+      watchedTime.value = Math.min(watchedTime.value + 1, totalDuration.value)
+      
+      // Salva il progresso ogni 10 secondi
+      if (watchedTime.value % 10 === 0) {
+        saveProgress()
+      }
+      
+      // Controlla se il video è completato
+      if (watchedTime.value >= totalDuration.value * 0.9) {
+        checkCompletion()
+      }
+    }
+  }, 1000) // Aggiorna ogni secondo
+}
+
+const stopProgressTimer = () => {
+  if (progressTimer) {
+    clearInterval(progressTimer)
+    progressTimer = null
+  }
+}
+
+// Simula il controllo del video (per Vimeo iframe)
+const simulateVideoControl = () => {
+  // Per Vimeo iframe, simuliamo il controllo del video
+  // In un'implementazione reale, useremmo l'API di Vimeo
+  isVideoPlaying.value = true
+}
+
+const pauseVideo = () => {
+  isVideoPlaying.value = false
 }
 
 // Metodi rimossi - i controlli sono gestiti direttamente dal video Vimeo
@@ -526,8 +438,8 @@ const initializeProgressTracking = () => {
     isCompleted.value = props.userProgress.completed || false
   }
 
-  // Set up progress tracking interval (disabled for now due to auth issues)
-  // progressInterval.value = setInterval(saveProgress, 10000) // Save every 10 seconds
+  // Set up progress tracking interval
+  progressInterval.value = setInterval(saveProgress, 10000) // Save every 10 seconds
 
   // Don't show progress overlay initially - let user start the video
   showProgressOverlay.value = false
@@ -550,14 +462,6 @@ const saveProgress = async () => {
     })
   } catch (error) {
     console.error('Errore nel salvataggio progresso:', error)
-    
-    // Stop the progress timer if we get authentication errors
-    if (error.response?.status === 403 || error.response?.status === 401) {
-      if (progressInterval.value) {
-        clearInterval(progressInterval.value)
-        progressInterval.value = null
-      }
-    }
   }
 }
 
@@ -567,6 +471,8 @@ const checkCompletion = () => {
   if (shouldComplete && !isCompleted.value) {
     isCompleted.value = true
     showProgressOverlay.value = false
+    stopProgressTimer() // Ferma il timer quando completato
+    saveProgress() // Salva il progresso finale
     emit('lesson-completed', props.lesson)
   }
 }
@@ -576,6 +482,7 @@ const markAsCompleted = async () => {
   watchedTime.value = totalDuration.value
   lastPosition.value = totalDuration.value
   showProgressOverlay.value = false
+  stopProgressTimer() // Ferma il timer
   
   await saveProgress()
   emit('lesson-completed', props.lesson)
@@ -619,6 +526,9 @@ onUnmounted(() => {
   if (progressInterval.value) {
     clearInterval(progressInterval.value)
   }
+  
+  // Pulisci il timer del progresso
+  stopProgressTimer()
   
   // Save final progress
   saveProgress()

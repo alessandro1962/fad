@@ -136,6 +136,10 @@ const props = defineProps({
   isOpen: {
     type: Boolean,
     default: false
+  },
+  preselectedUser: {
+    type: Object,
+    default: null
   }
 })
 
@@ -152,6 +156,13 @@ const form = ref({
   status: 'enrolled',
   progress_percentage: 0
 })
+
+// Watch for preselected user
+watch(() => props.preselectedUser, (newUser) => {
+  if (newUser) {
+    form.value.user_id = newUser.id
+  }
+}, { immediate: true })
 
 // Load users and courses when modal opens
 watch(() => props.isOpen, (isOpen) => {

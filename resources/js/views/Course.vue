@@ -85,7 +85,7 @@
             <div class="flex items-center justify-between">
                 <div>
                     <h1 class="text-3xl font-bold mb-2">{{ course.title }}</h1>
-                    <p class="text-lg opacity-90">{{ course.description }}</p>
+                    <div class="text-lg opacity-90" v-html="course.description"></div>
                     <div class="flex items-center space-x-4 mt-4">
                         <span class="px-3 py-1 bg-white/20 rounded-full text-sm">
                             {{ course.level }}
@@ -174,9 +174,6 @@
                             </div>
                         </div>
                         <div class="flex items-center space-x-4">
-                            <button @click="markLessonCompleted" class="btn-primary">
-                                Segna come Completato
-                            </button>
                             <button class="btn-secondary">
                                 Scarica PDF
                             </button>
@@ -194,9 +191,6 @@
                             </div>
                         </div>
                         <div class="flex items-center space-x-4">
-                            <button @click="markLessonCompleted" class="btn-primary">
-                                {{ currentLesson.completed ? 'Rivedi' : 'Inizia Lezione' }}
-                            </button>
                             <button class="btn-secondary">
                                 Materiali
                             </button>
@@ -332,9 +326,11 @@ import VideoPlayer from '@/components/Course/VideoPlayer.vue';
 import QuizPlayer from '@/components/Course/QuizPlayer.vue';
 import api from '@/api';
 import axios from 'axios';
+import { useAuthStore } from '@/stores/auth';
 
 const route = useRoute();
 const router = useRouter();
+const authStore = useAuthStore();
 
 // State
 const course = ref({});
@@ -379,7 +375,6 @@ const loadCourse = async () => {
 
 const loadCurrentLesson = async () => {
     try {
-        // For non-authenticated users, just show the first lesson
         if (!course.value || !course.value.modules || course.value.modules.length === 0) {
             return;
         }
@@ -395,9 +390,12 @@ const loadCurrentLesson = async () => {
         
         if (targetLesson) {
             currentLesson.value = targetLesson;
-            // Don't load progress for non-authenticated users
-            // await loadLessonProgress();
-            // await loadLessonAttempts();
+            
+            // Load progress only for authenticated users
+            if (authStore.isAuthenticated) {
+                await loadLessonProgress();
+                await loadLessonAttempts();
+            }
         }
     } catch (error) {
         console.error('Errore nel caricamento lezione corrente:', error);
@@ -428,26 +426,34 @@ const loadLessonAttempts = async () => {
     }
 };
 
-const onProgressUpdated = (progressData) => {
+const onProgressUpdated = async (progressData) => {
     currentLessonProgress.value = progressData;
-    // Update course progress
-    updateCourseProgress();
+    // Update course progress only for authenticated users
+    if (authStore.isAuthenticated) {
+        await updateCourseProgress();
+    }
 };
 
-const onLessonCompleted = (lesson) => {
+const onLessonCompleted = async (lesson) => {
     // Mark lesson as completed
     lesson.completed = true;
     currentLessonProgress.value.completed = true;
     
-    // Update course progress
-    updateCourseProgress();
+    // Update course progress only for authenticated users
+    if (authStore.isAuthenticated) {
+        await updateCourseProgress();
+    }
     
     // Load next lesson
     loadNextLesson();
 };
 
-const onQuizCompleted = (result) => {
+const onQuizCompleted = async (result) => {
     if (result.result.passed) {
+        // Reload lesson progress from backend to get updated completion status
+        if (authStore.isAuthenticated) {
+            await loadLessonProgress();
+        }
         onLessonCompleted(result.lesson);
     }
 };
@@ -476,8 +482,12 @@ const loadNextLesson = async () => {
     
     if (nextLesson) {
         currentLesson.value = nextLesson;
-        await loadLessonProgress();
-        await loadLessonAttempts();
+        
+        // Load progress only for authenticated users
+        if (authStore.isAuthenticated) {
+            await loadLessonProgress();
+            await loadLessonAttempts();
+        }
     } else {
         // No more lessons - course completed
         courseCompleted.value = true;
@@ -485,35 +495,36 @@ const loadNextLesson = async () => {
     }
 };
 
-const markLessonCompleted = async () => {
-    try {
-        await api.patch(`/v1/progress/lesson/${currentLesson.value.id}`, {
-            completed: true,
-            seconds_watched: currentLesson.value.duration_minutes * 60 || 0
-        });
-        
-        onLessonCompleted(currentLesson.value);
-    } catch (error) {
-        console.error('Errore nel completamento lezione:', error);
-    }
-};
 
-const updateCourseProgress = () => {
-    // Calculate course progress based on completed lessons
-    let totalLessons = 0;
-    let completedLessons = 0;
-    
-    for (const module of course.value.modules || []) {
-        for (const lesson of module.lessons || []) {
-            totalLessons++;
-            if (lesson.completed) {
-                completedLessons++;
+const updateCourseProgress = async () => {
+    try {
+        // Only update progress for authenticated users
+        if (!authStore.isAuthenticated) {
+            return;
+        }
+        
+        // Reload course data from backend to get updated progress
+        const response = await api.get(`/v1/courses/${course.value.id}`);
+        course.value = response.data.data;
+        
+        // Also update local progress calculation as fallback
+        let totalLessons = 0;
+        let completedLessons = 0;
+        
+        for (const module of course.value.modules || []) {
+            for (const lesson of module.lessons || []) {
+                totalLessons++;
+                if (lesson.completed) {
+                    completedLessons++;
+                }
             }
         }
-    }
-    
-    if (totalLessons > 0 && course.value) {
-        course.value.progress = Math.round((completedLessons / totalLessons) * 100);
+        
+        if (totalLessons > 0 && course.value) {
+            course.value.progress = Math.round((completedLessons / totalLessons) * 100);
+        }
+    } catch (error) {
+        console.error('Errore nel caricamento progresso corso:', error);
     }
 };
 

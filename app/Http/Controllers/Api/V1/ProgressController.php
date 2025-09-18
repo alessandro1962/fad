@@ -87,13 +87,19 @@ class ProgressController extends Controller
         $isCompleted = $request->completed ?? false;
         $lessonDuration = $lesson->duration_minutes * 60;
         
+        // Only auto-complete if not already completed and watched enough
         if (!$isCompleted && $request->seconds_watched >= ($lessonDuration * 0.9)) {
             $isCompleted = true;
         }
 
+        // Only mark as completed if it wasn't already completed
         if ($isCompleted && (!$progress || !$progress->completed)) {
             $data['completed'] = true;
             $data['completed_at'] = now();
+        } elseif (!$isCompleted && $progress && $progress->completed) {
+            // If explicitly setting as not completed, update the status
+            $data['completed'] = false;
+            $data['completed_at'] = null;
         }
 
         if ($progress) {

@@ -475,6 +475,7 @@
     <!-- Enroll User Modal -->
     <EnrollUserModal
       :is-open="showEnrollModal"
+      :preselected-user="selectedUserForEnrollment"
       @close="showEnrollModal = false"
       @success="onEnrollmentSuccess"
     />

@@ -254,7 +254,7 @@
             <div class="flex items-center gap-2">
               <button
                 @click="loadPage(pagination.current_page - 1)"
-                :disabled="!pagination.prev"
+                :disabled="pagination.current_page <= 1"
                 class="px-3 py-2 text-sm border border-cdf-slate200 rounded-lg hover:bg-cdf-slate200 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Precedente
@@ -264,7 +264,7 @@
               </span>
               <button
                 @click="loadPage(pagination.current_page + 1)"
-                :disabled="!pagination.next"
+                :disabled="pagination.current_page >= pagination.last_page"
                 class="px-3 py-2 text-sm border border-cdf-slate200 rounded-lg hover:bg-cdf-slate200 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Successiva
@@ -315,7 +315,14 @@ const router = useRouter()
 // State
 const loading = ref(false)
 const courses = ref([])
-const pagination = ref({})
+const pagination = ref({
+  current_page: 1,
+  last_page: 1,
+  per_page: 15,
+  total: 0,
+  prev: null,
+  next: null
+})
 const showCreateModal = ref(false)
 const showEditModal = ref(false)
 const showStatsModal = ref(false)
@@ -348,9 +355,16 @@ const loadCourses = async (page = 1) => {
     pagination.value = response.data.meta
   } catch (error) {
     console.error('Errore:', error)
-    // Handle error
+    console.error('Error response:', error.response?.data)
+    alert(`Errore: ${error.response?.data?.message || error.message}`)
   } finally {
     loading.value = false
+  }
+}
+
+const loadPage = (page) => {
+  if (page >= 1 && page <= pagination.value.last_page) {
+    loadCourses(page)
   }
 }
 
@@ -365,11 +379,6 @@ const resetFilters = () => {
   loadCourses(1)
 }
 
-const loadPage = (page) => {
-  if (page >= 1 && page <= pagination.value.last_page) {
-    loadCourses(page)
-  }
-}
 
 const editCourse = (course) => {
   editingCourse.value = course
@@ -403,19 +412,37 @@ const viewCourseStats = (course) => {
   showStatsModal.value = true
 }
 
-const deleteCourse = async (course) => {
-  if (!confirm(`Sei sicuro di voler eliminare il corso "${course.title}"?`)) {
+const deleteCourse = async (course, force = false) => {
+  const message = force 
+    ? `ATTENZIONE: Sei sicuro di voler eliminare FORZATAMENTE il corso "${course.title}"? Questa azione eliminerà anche tutte le iscrizioni degli utenti!`
+    : `Sei sicuro di voler eliminare il corso "${course.title}"?`
+    
+  if (!confirm(message)) {
     return
   }
 
   try {
-    await api.delete(`/v1/admin/courses/${course.id}`)
+    const url = force 
+      ? `/v1/admin/courses/${course.id}?force=true`
+      : `/v1/admin/courses/${course.id}`
+      
+    await api.delete(url)
     // Remove from list
     courses.value = courses.value.filter(c => c.id !== course.id)
-    // Show success message
+    alert(force ? 'Corso eliminato con successo (incluse le iscrizioni)' : 'Corso eliminato con successo')
   } catch (error) {
     console.error('Errore:', error)
-    alert(error.message)
+    console.error('Error response:', error.response?.data)
+    const errorMessage = error.response?.data?.message || error.message
+    
+    // If error mentions force delete, show option to force delete
+    if (errorMessage.includes('Elimina forzatamente')) {
+      if (confirm(`${errorMessage}\n\nVuoi procedere con l'eliminazione forzata?`)) {
+        await deleteCourse(course, true)
+      }
+    } else {
+      alert(`Errore: ${errorMessage}`)
+    }
   }
 }
 

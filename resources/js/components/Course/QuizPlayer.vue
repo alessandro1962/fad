@@ -352,13 +352,18 @@ const startQuizAttempt = async () => {
 
 const loadQuiz = async () => {
   try {
+    console.log('Loading quiz for lesson:', props.lesson.id)
     // Load the quiz associated with this lesson
     const response = await api.get(`/v1/lessons/${props.lesson.id}/quiz`)
+    console.log('Quiz API response:', response.data)
     quizData.value = response.data.data || {}
     totalQuestions.value = quizData.value.questions?.length || 0
     timeLimit.value = (quizData.value.time_limit_minutes || 0) * 60 // Convert to seconds
     timeRemaining.value = timeLimit.value
     attemptNumber.value = props.userAttempts.length + 1
+    
+    console.log('Quiz data loaded:', quizData.value)
+    console.log('Total questions:', totalQuestions.value)
     
     // Initialize answers array
     answers.value = new Array(totalQuestions.value).fill(null)
@@ -379,12 +384,16 @@ const loadQuiz = async () => {
     }
     
     // Fallback to lesson payload if API fails
+    console.log('Using fallback quiz data from lesson payload:', props.lesson.payload)
     quizData.value = props.lesson.payload || {}
     totalQuestions.value = quizData.value.questions?.length || 0
     timeLimit.value = (quizData.value.time_limit || 0) * 60
     timeRemaining.value = timeLimit.value
     attemptNumber.value = props.userAttempts.length + 1
     answers.value = new Array(totalQuestions.value).fill(null)
+    
+    console.log('Fallback quiz data:', quizData.value)
+    console.log('Fallback total questions:', totalQuestions.value)
     
     if (timeLimit.value > 0) {
       startTimer()
@@ -393,6 +402,9 @@ const loadQuiz = async () => {
 }
 
 const initializeQuiz = async () => {
+  console.log('Initializing quiz for lesson:', props.lesson)
+  console.log('Lesson type:', props.lesson.type)
+  console.log('Lesson payload:', props.lesson.payload)
   await loadQuiz()
 }
 

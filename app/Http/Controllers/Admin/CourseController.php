@@ -152,12 +152,22 @@ class CourseController extends Controller
     /**
      * Remove the specified course
      */
-    public function destroy(Course $course): JsonResponse
+    public function destroy(Request $request, Course $course): JsonResponse
     {
         // Check if course has enrollments
         if ($course->enrollments()->count() > 0) {
+            // If force delete is requested, delete enrollments first
+            if ($request->boolean('force')) {
+                $course->enrollments()->delete();
+                $course->delete();
+                
+                return response()->json([
+                    'message' => 'Corso eliminato con successo (incluse le iscrizioni)'
+                ]);
+            }
+            
             return response()->json([
-                'message' => 'Impossibile eliminare il corso: ci sono iscrizioni attive'
+                'message' => 'Impossibile eliminare il corso: ci sono iscrizioni attive. Usa "Elimina forzatamente" per rimuovere anche le iscrizioni.'
             ], 422);
         }
 
