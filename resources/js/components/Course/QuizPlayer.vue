@@ -1,5 +1,13 @@
 <template>
   <div class="quiz-player-container">
+    <!-- Loading State -->
+    <div v-if="!quizData.questions || quizData.questions.length === 0" class="bg-white rounded-2xl shadow-sm border border-cdf-slate200 p-6 text-center">
+      <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-cdf-teal mx-auto mb-4"></div>
+      <p class="text-cdf-slate700">Caricamento quiz...</p>
+    </div>
+    
+    <!-- Quiz Content -->
+    <div v-else>
     <!-- Quiz Header -->
     <div class="bg-white rounded-2xl shadow-sm border border-cdf-slate200 p-6 mb-6">
       <div class="flex items-center justify-between mb-4">
@@ -30,7 +38,7 @@
         ></div>
       </div>
       <p class="text-sm text-cdf-slate600 mt-2">
-        Domanda {{ currentQuestionIndex + 1 }} di {{ quizData.questions.length }}
+        Domanda {{ currentQuestionIndex + 1 }} di {{ quizData.questions?.length || 0 }}
       </p>
     </div>
 
@@ -154,7 +162,7 @@
           </button>
 
           <button
-            v-if="currentQuestionIndex < quizData.questions.length - 1"
+            v-if="currentQuestionIndex < (quizData.questions?.length || 0) - 1"
             @click="nextQuestion"
             :disabled="!hasAnswer"
             class="px-6 py-3 bg-cdf-teal text-white rounded-xl font-semibold hover:bg-cdf-deep transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
@@ -230,7 +238,7 @@
             @click="proceedToNext"
             class="flex-1 bg-cdf-amber text-cdf-ink px-6 py-3 rounded-xl font-semibold hover:brightness-95 transition-colors"
           >
-            Continua al Prossimo
+            {{ isLastLesson ? 'Completa Corso' : 'Continua al Prossimo' }}
           </button>
           <button
             v-if="quizPassed"
@@ -247,7 +255,7 @@
         <h4 class="text-lg font-bold text-cdf-deep mb-4">Dettaglio Risposte</h4>
         <div class="space-y-4">
           <div
-            v-for="(question, index) in quizData.questions"
+            v-for="(question, index) in (quizData.questions || [])"
             :key="index"
             class="p-4 border rounded-xl"
             :class="isAnswerCorrect(index) ? 'border-green-200 bg-green-50' : 'border-red-200 bg-red-50'"
@@ -271,6 +279,7 @@
         </div>
       </div>
     </div>
+    </div> <!-- Chiusura del div v-else -->
   </div>
 </template>
 
@@ -286,10 +295,14 @@ const props = defineProps({
   userAttempts: {
     type: Array,
     default: () => []
+  },
+  isLastLesson: {
+    type: Boolean,
+    default: false
   }
 })
 
-const emit = defineEmits(['quiz-completed', 'next-lesson'])
+const emit = defineEmits(['quiz-completed', 'next-lesson', 'course-completed'])
 
 // Refs
 const quizData = ref({})
@@ -326,6 +339,11 @@ const hasAnswer = computed(() => {
 })
 
 const canRetry = computed(() => {
+  // Permetti sempre di riprovare se il quiz non è superato
+  if (!quizPassed.value) {
+    return true
+  }
+  // Se superato, controlla i tentativi massimi
   return attemptNumber.value < (quizData.value.max_attempts || 3)
 })
 
@@ -341,18 +359,29 @@ const startQuizAttempt = async () => {
     const response = await api.post(`/v1/quizzes/${quizData.value.id}/start`)
     currentAttemptId.value = response.data.data.attempt_id
     attemptNumber.value = response.data.data.attempt_number
+    console.log('Nuovo tentativo creato:', response.data.data)
   } catch (error) {
     console.error('Errore nell\'avvio del quiz:', error)
     // If there's already a pending attempt, use it
     if (error.response?.status === 409) {
+      console.log('Tentativo già esistente, uso quello:', error.response.data.data)
       currentAttemptId.value = error.response.data.data.attempt_id
+      // Non aggiorniamo attemptNumber perché è già corretto
+    } else if (error.response?.status === 403) {
+      console.error('Accesso negato al quiz. Verifica di essere autenticato e iscritto al corso.')
+      throw error
+    } else {
+      throw error
     }
   }
 }
 
 const loadQuiz = async () => {
   try {
+    console.log('=== LOAD QUIZ START ===')
     console.log('Loading quiz for lesson:', props.lesson.id)
+    console.log('Lesson payload:', props.lesson.payload)
+    
     // Load the quiz associated with this lesson
     const response = await api.get(`/v1/lessons/${props.lesson.id}/quiz`)
     console.log('Quiz API response:', response.data)
@@ -364,6 +393,7 @@ const loadQuiz = async () => {
     
     console.log('Quiz data loaded:', quizData.value)
     console.log('Total questions:', totalQuestions.value)
+    console.log('Time limit:', timeLimit.value)
     
     // Initialize answers array
     answers.value = new Array(totalQuestions.value).fill(null)
@@ -375,7 +405,10 @@ const loadQuiz = async () => {
     if (timeLimit.value > 0) {
       startTimer()
     }
+    
+    console.log('=== LOAD QUIZ COMPLETED ===')
   } catch (error) {
+    console.error('=== LOAD QUIZ ERROR ===')
     console.error('Errore nel caricamento del quiz:', error)
     
     // Show error message to user
@@ -402,10 +435,14 @@ const loadQuiz = async () => {
 }
 
 const initializeQuiz = async () => {
+  console.log('=== QUIZ PLAYER INITIALIZE ===')
   console.log('Initializing quiz for lesson:', props.lesson)
   console.log('Lesson type:', props.lesson.type)
   console.log('Lesson payload:', props.lesson.payload)
+  console.log('Is last lesson:', props.isLastLesson)
   await loadQuiz()
+  console.log('Quiz data loaded:', quizData.value)
+  console.log('Total questions:', totalQuestions.value)
 }
 
 const startTimer = () => {
@@ -465,7 +502,7 @@ const submitQuiz = async () => {
     finalScore.value = result.percentage
     correctAnswers.value = result.answers.filter(answer => answer.is_correct).length
     quizAnswers.value = result.answers
-    attemptNumber.value = result.attempt_id
+    attemptNumber.value = result.attempt_number || 1
 
     emit('quiz-completed', {
       lesson: props.lesson,
@@ -487,7 +524,7 @@ const retryQuiz = async () => {
     timeRemaining.value = timeLimit.value
     showDetailedResults.value = false
     
-    // Start a new quiz attempt
+    // Start a new quiz attempt (il backend gestisce il numero del tentativo)
     await startQuizAttempt()
   } catch (error) {
     console.error('Errore nel riavvio del quiz:', error)
@@ -495,7 +532,13 @@ const retryQuiz = async () => {
 }
 
 const proceedToNext = () => {
-  emit('next-lesson')
+  if (props.isLastLesson) {
+    // Se è l'ultima lezione, emetti evento di completamento corso
+    emit('course-completed')
+  } else {
+    // Altrimenti procedi alla prossima lezione
+    emit('next-lesson')
+  }
 }
 
 const reviewAnswers = () => {

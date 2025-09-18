@@ -244,6 +244,7 @@ class ProgressController extends Controller
             ->count();
 
         if ($totalLessons === 0) {
+            \Log::info('ProgressController: Nessuna lezione trovata per il corso', ['course_id' => $course->id]);
             return;
         }
 
@@ -257,6 +258,15 @@ class ProgressController extends Controller
         $progressPercentage = round(($completedLessons / $totalLessons) * 100);
         $wasCompleted = $enrollment->status === 'completed';
         
+        \Log::info('ProgressController: Aggiornamento progresso enrollment', [
+            'course_id' => $course->id,
+            'user_id' => $user->id,
+            'total_lessons' => $totalLessons,
+            'completed_lessons' => $completedLessons,
+            'progress_percentage' => $progressPercentage,
+            'was_completed' => $wasCompleted
+        ]);
+        
         $enrollment->update([
             'progress_percentage' => $progressPercentage,
             'status' => $progressPercentage >= 100 ? 'completed' : 'active',
@@ -265,6 +275,7 @@ class ProgressController extends Controller
 
         // Generate certificate if course was just completed
         if ($progressPercentage >= 100 && !$wasCompleted) {
+            \Log::info('ProgressController: Corso completato, generazione certificato', ['course_id' => $course->id]);
             $this->generateCertificate($user, $course);
         }
     }

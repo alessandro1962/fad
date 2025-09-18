@@ -27,6 +27,9 @@
 
     <!-- Scripts -->
     @vite(['resources/css/app.css', 'resources/js/app.js'])
+    
+    <!-- Vimeo Player API -->
+    <script src="https://player.vimeo.com/api/player.js"></script>
 </head>
 <body class="font-sans antialiased">
     <div id="app"></div>

@@ -19,12 +19,31 @@ class QuizController extends Controller
     {
         $user = $request->user();
         
+        \Log::info('QuizController: getQuizByLesson - user check', [
+            'user' => $user ? $user->toArray() : 'null',
+            'authenticated' => $user ? 'yes' : 'no',
+            'lesson_id' => $lesson->id
+        ]);
+        
+        if (!$user) {
+            return response()->json([
+                'message' => 'Utente non autenticato.',
+            ], 401);
+        }
+        
         // Check if user is enrolled in the course
         $course = $lesson->module->course;
         $enrollment = $user->enrollments()
             ->where('course_id', $course->id)
             ->whereIn('status', ['active', 'completed'])
             ->first();
+
+        \Log::info('QuizController: getQuizByLesson - enrollment check', [
+            'user_id' => $user->id,
+            'course_id' => $course->id,
+            'lesson_id' => $lesson->id,
+            'enrollment' => $enrollment ? $enrollment->toArray() : null
+        ]);
 
         if (!$enrollment) {
             return response()->json([
@@ -151,12 +170,31 @@ class QuizController extends Controller
     {
         $user = $request->user();
         
+        \Log::info('QuizController: start quiz - user check', [
+            'user' => $user ? $user->toArray() : 'null',
+            'authenticated' => $user ? 'yes' : 'no'
+        ]);
+        
+        if (!$user) {
+            return response()->json([
+                'message' => 'Utente non autenticato.',
+            ], 401);
+        }
+        
         // Check if user is enrolled in the course
         $course = $quiz->lesson->module->course;
         $enrollment = $user->enrollments()
             ->where('course_id', $course->id)
             ->whereIn('status', ['active', 'completed'])
             ->first();
+
+        \Log::info('QuizController: start quiz check', [
+            'user_id' => $user->id,
+            'course_id' => $course->id,
+            'quiz_id' => $quiz->id,
+            'enrollment' => $enrollment ? $enrollment->toArray() : null,
+            'all_enrollments' => $user->enrollments()->get()->toArray()
+        ]);
 
         if (!$enrollment) {
             return response()->json([
@@ -169,13 +207,17 @@ class QuizController extends Controller
             ->where('quiz_id', $quiz->id)
             ->count();
 
-        // Allow unlimited attempts for completed courses (for review purposes)
-        // For testing purposes, allow unlimited attempts for all courses
-        if ($attemptCount >= $quiz->max_attempts && $enrollment->status !== 'completed' && $quiz->max_attempts < 999) {
-            return response()->json([
-                'message' => 'Hai raggiunto il numero massimo di tentativi per questo quiz.',
-            ], 403);
-        }
+        \Log::info('QuizController: start quiz - attempt check', [
+            'user_id' => $user->id,
+            'quiz_id' => $quiz->id,
+            'attempt_count' => $attemptCount,
+            'max_attempts' => $quiz->max_attempts,
+            'enrollment_status' => $enrollment->status,
+            'unlimited_attempts' => true
+        ]);
+
+        // Allow unlimited attempts for all users
+        // No limit on quiz attempts
 
         // Check if user has a pending attempt
         $pendingAttempt = $user->attempts()
@@ -512,6 +554,7 @@ class QuizController extends Controller
             ->sum('lessons_count');
 
         if ($totalLessons === 0) {
+            \Log::info('QuizController: Nessuna lezione trovata per il corso', ['course_id' => $course->id]);
             return;
         }
 
@@ -525,6 +568,15 @@ class QuizController extends Controller
         $progressPercentage = round(($completedLessons / $totalLessons) * 100);
         $wasCompleted = $enrollment->status === 'completed';
         
+        \Log::info('QuizController: Aggiornamento progresso enrollment', [
+            'course_id' => $course->id,
+            'user_id' => $user->id,
+            'total_lessons' => $totalLessons,
+            'completed_lessons' => $completedLessons,
+            'progress_percentage' => $progressPercentage,
+            'was_completed' => $wasCompleted
+        ]);
+        
         $enrollment->update([
             'progress_percentage' => $progressPercentage,
             'status' => $progressPercentage >= 100 ? 'completed' : 'active',
@@ -533,6 +585,7 @@ class QuizController extends Controller
 
         // Generate certificate if course was just completed
         if ($progressPercentage >= 100 && !$wasCompleted) {
+            \Log::info('QuizController: Corso completato, generazione certificato', ['course_id' => $course->id]);
             $this->generateCertificate($user, $course);
         }
     }

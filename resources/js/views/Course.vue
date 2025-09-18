@@ -146,9 +146,11 @@
                         :lesson="currentLesson"
                         :user-progress="currentLessonProgress"
                         :block-progression="currentLesson.payload?.block_progression !== false"
+                        :is-last-lesson="isLastLesson"
                         @progress-updated="onProgressUpdated"
                         @lesson-completed="onLessonCompleted"
                         @next-lesson="onNextLesson"
+                        @course-completed="onCourseCompleted"
                     />
 
                     <!-- Quiz Player -->
@@ -156,8 +158,10 @@
                         v-else-if="currentLesson.type === 'quiz'"
                         :lesson="currentLesson"
                         :user-attempts="currentLessonAttempts"
+                        :is-last-lesson="isLastLesson"
                         @quiz-completed="onQuizCompleted"
                         @next-lesson="onNextLesson"
+                        @course-completed="onCourseCompleted"
                     />
 
                     <!-- PDF Viewer -->
@@ -343,6 +347,25 @@ const courseCompleted = ref(false);
 // Computed
 const courseId = computed(() => route.params.id);
 
+const isLastLesson = computed(() => {
+    if (!course.value.modules || !currentLesson.value.id) {
+        return false;
+    }
+    
+    // Trova l'ultima lezione del corso
+    let lastLesson = null;
+    for (const module of course.value.modules) {
+        if (module.lessons && module.lessons.length > 0) {
+            const moduleLastLesson = module.lessons[module.lessons.length - 1];
+            if (!lastLesson || moduleLastLesson.id > lastLesson.id) {
+                lastLesson = moduleLastLesson;
+            }
+        }
+    }
+    
+    return lastLesson && lastLesson.id === currentLesson.value.id;
+});
+
 // Methods
 const getLessonTypeLabel = (type) => {
     const labels = {
@@ -454,7 +477,13 @@ const onQuizCompleted = async (result) => {
         if (authStore.isAuthenticated) {
             await loadLessonProgress();
         }
-        onLessonCompleted(result.lesson);
+        
+        // Se è l'ultima lezione, completa il corso direttamente
+        if (isLastLesson.value) {
+            await onCourseCompleted();
+        } else {
+            onLessonCompleted(result.lesson);
+        }
     }
 };
 
@@ -462,25 +491,48 @@ const onNextLesson = () => {
     loadNextLesson();
 };
 
+const onCourseCompleted = async () => {
+    // Marca la lezione corrente come completata
+    currentLesson.value.completed = true;
+    currentLessonProgress.value.completed = true;
+    
+    // Aggiorna il progresso del corso
+    if (authStore.isAuthenticated) {
+        await updateCourseProgress();
+    }
+    
+    // Mostra la schermata di completamento corso
+    courseCompleted.value = true;
+};
+
 const loadNextLesson = async () => {
+    console.log('loadNextLesson chiamata');
+    console.log('Lezione corrente:', currentLesson.value.id, currentLesson.value.title);
+    console.log('Moduli del corso:', course.value.modules);
+    
     // Find next lesson in sequence (regardless of completion status)
     let nextLesson = null;
     let foundCurrent = false;
     
     for (const module of course.value.modules || []) {
+        console.log('Controllo modulo:', module.title, 'lezioni:', module.lessons);
         for (const lesson of module.lessons || []) {
+            console.log('Controllo lezione:', lesson.id, lesson.title, 'foundCurrent:', foundCurrent);
             if (foundCurrent) {
                 nextLesson = lesson;
+                console.log('Trovata prossima lezione:', nextLesson.id, nextLesson.title);
                 break;
             }
             if (lesson.id === currentLesson.value.id) {
                 foundCurrent = true;
+                console.log('Trovata lezione corrente, prossima iterazione troverà la successiva');
             }
         }
         if (nextLesson) break;
     }
     
     if (nextLesson) {
+        console.log('Caricamento prossima lezione:', nextLesson.id, nextLesson.title);
         currentLesson.value = nextLesson;
         
         // Load progress only for authenticated users
@@ -489,12 +541,32 @@ const loadNextLesson = async () => {
             await loadLessonAttempts();
         }
     } else {
-        // No more lessons - course completed
-        courseCompleted.value = true;
-        console.log('Course completed!');
+        console.log('Nessuna lezione successiva trovata, controllo completamento corso');
+        // No more lessons - check if course is actually completed
+        await checkCourseCompletion();
     }
 };
 
+const checkCourseCompletion = async () => {
+    try {
+        // Check if all lessons are completed
+        const response = await api.get(`/v1/enrollments/mine`);
+        const enrollment = response.data.data.find(e => e.course_id === parseInt(courseId.value));
+        
+        if (enrollment && enrollment.progress_percentage >= 100) {
+            // Course is actually completed
+            courseCompleted.value = true;
+            console.log('Course actually completed!');
+        } else {
+            // Course not completed yet, go back to current lesson
+            console.log('Course not completed yet, staying on current lesson');
+            // Don't set courseCompleted to true
+        }
+    } catch (error) {
+        console.error('Error checking course completion:', error);
+        // Don't set courseCompleted to true on error
+    }
+};
 
 const updateCourseProgress = async () => {
     try {
