@@ -4,17 +4,12 @@
     <div class="relative bg-black rounded-xl overflow-hidden">
       <!-- Vimeo Player -->
       <div v-if="videoProvider === 'vimeo'" class="aspect-video relative">
-        <!-- Vimeo iframe with custom controls -->
-        <iframe
+        <!-- Vimeo player con API -->
+        <div
           ref="vimeoPlayer"
-          :src="vimeoEmbedUrl"
-          frameborder="0"
-          allow="autoplay; fullscreen; picture-in-picture"
-          allowfullscreen
           class="w-full h-full"
-          @load="onPlayerLoad"
           @click="hideInstructions"
-        ></iframe>
+        ></div>
         
         <!-- Custom Controls Overlay -->
         <div class="absolute inset-0 pointer-events-none" style="z-index: 1;">
@@ -27,17 +22,17 @@
                 </svg>
               </div>
               <div>
-                <p class="text-sm font-semibold mb-2">Completa la lezione per continuare</p>
+                <p class="text-sm font-semibold mb-2">Guarda il video per completare la lezione</p>
                 <p class="text-xs text-gray-300 mb-2">
                   Guarda almeno il {{ Math.round(completionThreshold * 100) }}% del video per sbloccare la prossima lezione.
                 </p>
                 <div class="text-xs text-cdf-teal font-semibold mb-3 space-y-1">
-                  <p>▶️ Per far partire il video: clicca sul pulsante play</p>
-                  <p>⏸️ Per metterlo in pausa: clicca sul pulsante pausa</p>
-                  <p>▶️ Per farlo ripartire: riclicca sul pulsante play</p>
+                  <p>▶️ Clicca sul video per iniziare la riproduzione</p>
+                  <p>⏸️ Usa i controlli del video per mettere in pausa se necessario</p>
+                  <p>📊 Il progresso viene tracciato automaticamente</p>
                 </div>
                 <p class="text-xs text-gray-400 mb-3">
-                  I video di Campus Digitale Forma sono realizzati in modo da non poter mandarli avanti meccanicamente.
+                  Il sistema traccia automaticamente il tuo progresso. Non è possibile saltare il video.
                 </p>
                 <button
                   @click="hideInstructions"
@@ -49,27 +44,6 @@
             </div>
           </div>
           
-          <!-- Video Controls -->
-          <div class="absolute bottom-4 left-4 right-4 flex items-center justify-center gap-4 pointer-events-auto">
-            <button
-              @click="simulateVideoControl"
-              v-if="!isVideoPlaying"
-              class="bg-cdf-teal/90 hover:bg-cdf-teal text-white p-3 rounded-full transition-colors"
-            >
-              <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M8 5v14l11-7z"/>
-              </svg>
-            </button>
-            <button
-              @click="pauseVideo"
-              v-if="isVideoPlaying"
-              class="bg-cdf-teal/90 hover:bg-cdf-teal text-white p-3 rounded-full transition-colors"
-            >
-              <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>
-              </svg>
-            </button>
-          </div>
           
         </div>
       </div>
@@ -168,25 +142,18 @@
       <!-- Action Buttons -->
       <div class="flex gap-3">
         <button
-          v-if="!isCompleted && canProceed"
-          @click="markAsCompleted"
-          class="flex-1 bg-cdf-teal text-white px-4 py-2 rounded-lg font-semibold hover:bg-cdf-deep transition-colors"
+          v-if="!isCompleted"
+          disabled
+          class="flex-1 bg-gray-300 text-gray-500 px-4 py-2 rounded-lg font-semibold cursor-not-allowed"
         >
-          Segna come Completato
+          Guarda il {{ Math.round(completionThreshold * 100) }}% del video per continuare
         </button>
         <button
-          v-else-if="isCompleted"
+          v-else
           @click="proceedToNext"
           class="flex-1 bg-cdf-amber text-cdf-ink px-4 py-2 rounded-lg font-semibold hover:brightness-95 transition-colors"
         >
           Continua al Prossimo
-        </button>
-        <button
-          v-else
-          disabled
-          class="flex-1 bg-gray-300 text-gray-500 px-4 py-2 rounded-lg font-semibold cursor-not-allowed"
-        >
-          Completa la lezione per continuare
         </button>
       </div>
     </div>
@@ -196,6 +163,7 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import api from '@/api'
+import Player from '@vimeo/player'
 
 const props = defineProps({
   lesson: {
@@ -216,6 +184,7 @@ const emit = defineEmits(['progress-updated', 'lesson-completed', 'next-lesson']
 
 // Refs
 const vimeoPlayer = ref(null)
+const vimeoPlayerInstance = ref(null)
 const youtubePlayer = ref(null)
 const videoElement = ref(null)
 const loading = ref(true)
@@ -319,26 +288,84 @@ const formatTime = (seconds) => {
   return `${minutes}:${secs.toString().padStart(2, '0')}`
 }
 
-const onPlayerLoad = () => {
+const onPlayerLoad = async () => {
   loading.value = false
   initializeProgressTracking()
   
-  // Per Vimeo, imposta la durata e avvia il timer
-  if (videoProvider.value === 'vimeo') {
-    // Stima la durata del video (in secondi)
-    const estimatedDuration = props.lesson.duration_minutes ? props.lesson.duration_minutes * 60 : 300 // 5 minuti di default
-    totalDuration.value = estimatedDuration
-    
-    // Avvia il timer solo se l'utente è autenticato
-    setTimeout(() => {
-      startProgressTimer()
-    }, 2000)
+  // Per Vimeo, inizializza il player API
+  if (videoProvider.value === 'vimeo' && vimeoPlayer.value) {
+    try {
+      // Inizializza il player Vimeo con l'API
+      vimeoPlayerInstance.value = new Player(vimeoPlayer.value, {
+        id: extractVimeoId(props.lesson.video_url),
+        width: '100%',
+        height: '100%',
+        responsive: true
+      })
+      
+      // Imposta la durata reale del video
+      const duration = await vimeoPlayerInstance.value.getDuration()
+      totalDuration.value = duration
+      
+      // Configura gli eventi del player
+      setupVimeoEvents()
+      
+    } catch (error) {
+      console.error('Errore nell\'inizializzazione del player Vimeo:', error)
+      // Fallback alla durata stimata
+      const estimatedDuration = props.lesson.duration_minutes ? props.lesson.duration_minutes * 60 : 300
+      totalDuration.value = estimatedDuration
+    }
   }
 }
 
-// Vimeo iframe player - no API needed
+// Funzione per estrarre l'ID Vimeo dall'URL
+const extractVimeoId = (url) => {
+  const match = url.match(/(?:vimeo\.com\/|player\.vimeo\.com\/video\/)(\d+)/)
+  return match ? match[1] : null
+}
 
-// Simplified iframe-based Vimeo player
+// Configura gli eventi del player Vimeo
+const setupVimeoEvents = () => {
+  if (!vimeoPlayerInstance.value) return
+  
+  // Evento quando il video inizia a riprodursi
+  vimeoPlayerInstance.value.on('play', () => {
+    console.log('Video in riproduzione')
+  })
+  
+  // Evento quando il video viene messo in pausa
+  vimeoPlayerInstance.value.on('pause', () => {
+    console.log('Video in pausa')
+  })
+  
+  // Evento per tracciare il progresso del video
+  vimeoPlayerInstance.value.on('timeupdate', (data) => {
+    watchedTime.value = Math.floor(data.seconds)
+    
+    // Salva il progresso ogni 10 secondi
+    if (watchedTime.value % 10 === 0) {
+      saveProgress()
+    }
+    
+    // Controlla se il video è completato (90% della durata)
+    if (watchedTime.value >= totalDuration.value * 0.9 && !isCompleted.value) {
+      checkCompletion()
+    }
+  })
+  
+  // Evento quando il video finisce
+  vimeoPlayerInstance.value.on('ended', () => {
+    console.log('Video completato')
+    watchedTime.value = totalDuration.value
+    checkCompletion()
+  })
+  
+  // Evento per errori
+  vimeoPlayerInstance.value.on('error', (error) => {
+    console.error('Errore nel player Vimeo:', error)
+  })
+}
 
 const hideProgressOverlay = () => {
   showProgressOverlay.value = false
@@ -348,48 +375,7 @@ const hideInstructions = () => {
   showInstructions.value = false
 }
 
-// Timer per il progresso
-let progressTimer = null
-let isVideoPlaying = ref(false)
-
-const startProgressTimer = () => {
-  if (progressTimer) return // Timer già attivo
-  
-  progressTimer = setInterval(() => {
-    // Incrementa gradualmente il tempo guardato solo se il video è in riproduzione
-    if (isVideoPlaying.value) {
-      watchedTime.value = Math.min(watchedTime.value + 1, totalDuration.value)
-      
-      // Salva il progresso ogni 10 secondi
-      if (watchedTime.value % 10 === 0) {
-        saveProgress()
-      }
-      
-      // Controlla se il video è completato
-      if (watchedTime.value >= totalDuration.value * 0.9) {
-        checkCompletion()
-      }
-    }
-  }, 1000) // Aggiorna ogni secondo
-}
-
-const stopProgressTimer = () => {
-  if (progressTimer) {
-    clearInterval(progressTimer)
-    progressTimer = null
-  }
-}
-
-// Simula il controllo del video (per Vimeo iframe)
-const simulateVideoControl = () => {
-  // Per Vimeo iframe, simuliamo il controllo del video
-  // In un'implementazione reale, useremmo l'API di Vimeo
-  isVideoPlaying.value = true
-}
-
-const pauseVideo = () => {
-  isVideoPlaying.value = false
-}
+// Sistema semplificato - completamento manuale
 
 // Metodi rimossi - i controlli sono gestiti direttamente dal video Vimeo
 
@@ -471,22 +457,12 @@ const checkCompletion = () => {
   if (shouldComplete && !isCompleted.value) {
     isCompleted.value = true
     showProgressOverlay.value = false
-    stopProgressTimer() // Ferma il timer quando completato
     saveProgress() // Salva il progresso finale
     emit('lesson-completed', props.lesson)
   }
 }
 
-const markAsCompleted = async () => {
-  isCompleted.value = true
-  watchedTime.value = totalDuration.value
-  lastPosition.value = totalDuration.value
-  showProgressOverlay.value = false
-  stopProgressTimer() // Ferma il timer
-  
-  await saveProgress()
-  emit('lesson-completed', props.lesson)
-}
+// La funzione markAsCompleted è stata rimossa - il completamento avviene automaticamente
 
 const proceedToNext = () => {
   // Check if user can proceed
@@ -518,8 +494,12 @@ onMounted(() => {
   // Initialize based on video provider
   if (videoProvider.value === 'upload' && videoElement.value) {
     onVideoLoaded()
+  } else if (videoProvider.value === 'vimeo') {
+    // Inizializza il player Vimeo quando il componente è montato
+    setTimeout(() => {
+      onPlayerLoad()
+    }, 100)
   }
-  // Vimeo iframe player doesn't need initialization
 })
 
 onUnmounted(() => {
@@ -527,8 +507,11 @@ onUnmounted(() => {
     clearInterval(progressInterval.value)
   }
   
-  // Pulisci il timer del progresso
-  stopProgressTimer()
+  // Cleanup Vimeo player
+  if (vimeoPlayerInstance.value) {
+    vimeoPlayerInstance.value.destroy()
+    vimeoPlayerInstance.value = null
+  }
   
   // Save final progress
   saveProgress()
