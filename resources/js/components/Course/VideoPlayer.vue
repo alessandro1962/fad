@@ -39,13 +39,16 @@
                   Guarda almeno il {{ Math.round(completionThreshold * 100) }}% del video per sbloccare la prossima lezione.
                 </p>
                 <div class="text-xs text-cdf-teal font-semibold mb-3 space-y-1">
-                  <p>▶️ Clicca sul video per iniziare la riproduzione</p>
-                  <p>⏸️ Usa i controlli del video per mettere in pausa se necessario</p>
-                  <p>📊 Il progresso viene tracciato automaticamente</p>
+                  <p v-if="!useVimeoIframe">▶️ Clicca sul video per iniziare la riproduzione</p>
+                  <p v-if="!useVimeoIframe">⏸️ Usa i controlli del video per mettere in pausa se necessario</p>
+                  <p v-if="!useVimeoIframe">📊 Il progresso viene tracciato automaticamente</p>
+                  <p v-if="useVimeoIframe">▶️ Clicca "Inizia a guardare il video" per avviare il timer</p>
+                  <p v-if="useVimeoIframe">⏱️ Il timer simula la durata del video</p>
                   <p v-if="useVimeoIframe" class="text-amber-400">⚠️ Modalità compatibilità attiva</p>
                 </div>
                 <p class="text-xs text-gray-400 mb-3">
-                  Il sistema traccia automaticamente il tuo progresso. Non è possibile saltare il video.
+                  <span v-if="!useVimeoIframe">Il sistema traccia automaticamente il tuo progresso. Non è possibile saltare il video.</span>
+                  <span v-if="useVimeoIframe">In modalità compatibilità, il timer simula la durata del video. Guarda il video completo.</span>
                 </p>
                 <button
                   @click="hideInstructions"
@@ -161,13 +164,14 @@
         >
           Guarda il {{ Math.round(completionThreshold * 100) }}% del video per continuare
         </button>
-        <button
-          v-else-if="!isCompleted && useVimeoIframe && watchedTime === 0"
-          @click="startFallbackTimer"
-          class="flex-1 bg-cdf-teal text-white px-4 py-2 rounded-lg font-semibold hover:bg-cdf-deep transition-colors"
-        >
-          Inizia a guardare il video
-        </button>
+        <div v-else-if="!isCompleted && useVimeoIframe && watchedTime === 0" class="flex gap-2">
+          <button
+            @click="startFallbackTimer"
+            class="flex-1 bg-cdf-teal text-white px-4 py-2 rounded-lg font-semibold hover:bg-cdf-deep transition-colors"
+          >
+            Inizia a guardare il video
+          </button>
+        </div>
         <button
           v-else-if="!isCompleted && useVimeoIframe && watchedTime > 0"
           disabled
@@ -318,6 +322,10 @@ const formatTime = (seconds) => {
 
 const onPlayerLoad = async () => {
   loading.value = false
+  
+  // Reset automatico del progresso ogni volta che si carica il video
+  resetProgress()
+  
   initializeProgressTracking()
   
   // Per Vimeo, prova prima l'API, poi fallback a iframe
@@ -349,8 +357,7 @@ const onPlayerLoad = async () => {
       const estimatedDuration = props.lesson.duration_minutes ? props.lesson.duration_minutes * 60 : 300
       totalDuration.value = estimatedDuration
       
-      // Avvia il timer per il fallback
-      startFallbackTimer()
+      // Non avviare automaticamente il timer - aspetta che l'utente clicchi play
     }
   }
 }
@@ -417,6 +424,8 @@ let fallbackTimer = null
 const startFallbackTimer = () => {
   if (fallbackTimer) return
   
+  console.log('Timer di fallback avviato')
+  
   fallbackTimer = setInterval(() => {
     // Simula il progresso per il fallback iframe
     // Questo è un sistema di base per quando l'API non funziona
@@ -440,7 +449,18 @@ const stopFallbackTimer = () => {
   if (fallbackTimer) {
     clearInterval(fallbackTimer)
     fallbackTimer = null
+    console.log('Timer di fallback fermato')
   }
+}
+
+const resetProgress = () => {
+  watchedTime.value = 0
+  isCompleted.value = false
+  // Non fermare il timer se non è attivo
+  if (fallbackTimer) {
+    stopFallbackTimer()
+  }
+  console.log('Progresso resettato automaticamente')
 }
 
 // Metodi rimossi - i controlli sono gestiti direttamente dal video Vimeo
