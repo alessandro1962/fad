@@ -4,12 +4,24 @@
     <div class="relative bg-black rounded-xl overflow-hidden">
       <!-- Vimeo Player -->
       <div v-if="videoProvider === 'vimeo'" class="aspect-video relative">
-        <!-- Vimeo player con API -->
+        <!-- Vimeo player con API (fallback a iframe se API non funziona) -->
         <div
+          v-if="!useVimeoIframe"
           ref="vimeoPlayer"
           class="w-full h-full"
           @click="hideInstructions"
         ></div>
+        <iframe
+          v-else
+          ref="vimeoPlayer"
+          :src="vimeoEmbedUrl"
+          frameborder="0"
+          allow="autoplay; fullscreen; picture-in-picture"
+          allowfullscreen
+          class="w-full h-full"
+          @load="onPlayerLoad"
+          @click="hideInstructions"
+        ></iframe>
         
         <!-- Custom Controls Overlay -->
         <div class="absolute inset-0 pointer-events-none" style="z-index: 1;">
@@ -30,6 +42,7 @@
                   <p>▶️ Clicca sul video per iniziare la riproduzione</p>
                   <p>⏸️ Usa i controlli del video per mettere in pausa se necessario</p>
                   <p>📊 Il progresso viene tracciato automaticamente</p>
+                  <p v-if="useVimeoIframe" class="text-amber-400">⚠️ Modalità compatibilità attiva</p>
                 </div>
                 <p class="text-xs text-gray-400 mb-3">
                   Il sistema traccia automaticamente il tuo progresso. Non è possibile saltare il video.
@@ -142,7 +155,21 @@
       <!-- Action Buttons -->
       <div class="flex gap-3">
         <button
-          v-if="!isCompleted"
+          v-if="!isCompleted && !useVimeoIframe"
+          disabled
+          class="flex-1 bg-gray-300 text-gray-500 px-4 py-2 rounded-lg font-semibold cursor-not-allowed"
+        >
+          Guarda il {{ Math.round(completionThreshold * 100) }}% del video per continuare
+        </button>
+        <button
+          v-else-if="!isCompleted && useVimeoIframe && watchedTime === 0"
+          @click="startFallbackTimer"
+          class="flex-1 bg-cdf-teal text-white px-4 py-2 rounded-lg font-semibold hover:bg-cdf-deep transition-colors"
+        >
+          Inizia a guardare il video
+        </button>
+        <button
+          v-else-if="!isCompleted && useVimeoIframe && watchedTime > 0"
           disabled
           class="flex-1 bg-gray-300 text-gray-500 px-4 py-2 rounded-lg font-semibold cursor-not-allowed"
         >
@@ -190,6 +217,7 @@ const videoElement = ref(null)
 const loading = ref(true)
 const showProgressOverlay = ref(false)
 const showInstructions = ref(true)
+const useVimeoIframe = ref(false)
 
 // State
 const watchedTime = ref(0)
@@ -292,7 +320,7 @@ const onPlayerLoad = async () => {
   loading.value = false
   initializeProgressTracking()
   
-  // Per Vimeo, inizializza il player API
+  // Per Vimeo, prova prima l'API, poi fallback a iframe
   if (videoProvider.value === 'vimeo' && vimeoPlayer.value) {
     try {
       // Inizializza il player Vimeo con l'API
@@ -310,11 +338,19 @@ const onPlayerLoad = async () => {
       // Configura gli eventi del player
       setupVimeoEvents()
       
+      console.log('Player Vimeo API inizializzato con successo')
+      
     } catch (error) {
-      console.error('Errore nell\'inizializzazione del player Vimeo:', error)
-      // Fallback alla durata stimata
+      console.error('Errore nell\'inizializzazione del player Vimeo API:', error)
+      console.log('Fallback a iframe Vimeo')
+      
+      // Fallback a iframe
+      useVimeoIframe.value = true
       const estimatedDuration = props.lesson.duration_minutes ? props.lesson.duration_minutes * 60 : 300
       totalDuration.value = estimatedDuration
+      
+      // Avvia il timer per il fallback
+      startFallbackTimer()
     }
   }
 }
@@ -375,7 +411,37 @@ const hideInstructions = () => {
   showInstructions.value = false
 }
 
-// Sistema semplificato - completamento manuale
+// Timer di fallback per iframe Vimeo
+let fallbackTimer = null
+
+const startFallbackTimer = () => {
+  if (fallbackTimer) return
+  
+  fallbackTimer = setInterval(() => {
+    // Simula il progresso per il fallback iframe
+    // Questo è un sistema di base per quando l'API non funziona
+    if (watchedTime.value < totalDuration.value) {
+      watchedTime.value = Math.min(watchedTime.value + 1, totalDuration.value)
+      
+      // Salva il progresso ogni 10 secondi
+      if (watchedTime.value % 10 === 0) {
+        saveProgress()
+      }
+      
+      // Controlla se il video è completato (90% della durata)
+      if (watchedTime.value >= totalDuration.value * 0.9 && !isCompleted.value) {
+        checkCompletion()
+      }
+    }
+  }, 1000)
+}
+
+const stopFallbackTimer = () => {
+  if (fallbackTimer) {
+    clearInterval(fallbackTimer)
+    fallbackTimer = null
+  }
+}
 
 // Metodi rimossi - i controlli sono gestiti direttamente dal video Vimeo
 
@@ -512,6 +578,9 @@ onUnmounted(() => {
     vimeoPlayerInstance.value.destroy()
     vimeoPlayerInstance.value = null
   }
+  
+  // Cleanup fallback timer
+  stopFallbackTimer()
   
   // Save final progress
   saveProgress()
