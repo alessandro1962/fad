@@ -128,7 +128,7 @@ class TestMailingSystem extends Command
             if ($result['success']) {
                 $this->line("✅ Connessione SendGrid verificata (Status: {$result['status_code']})");
             } else {
-                $this->error("❌ Connessione SendGrid fallita: {$result['error']}");
+                $this->error("❌ Connessione SendGrid fallita: " . (isset($result["error"]) ? $result["error"] : "Errore sconosciuto"));
             }
         } catch (\Exception $e) {
             $this->error("❌ Errore SendGrid: {$e->getMessage()}");

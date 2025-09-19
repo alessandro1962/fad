@@ -3,7 +3,7 @@
 namespace App\Services;
 
 use SendGrid\Mail\Mail;
-use SendGrid\SendGrid;
+use SendGrid;
 use SendGrid\Mail\Personalization;
 use SendGrid\Mail\Substitution;
 use Illuminate\Support\Facades\Log;

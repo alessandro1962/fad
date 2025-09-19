@@ -13,7 +13,7 @@ return [
     'api_key' => env('MAIL_PASSWORD'),
     
     'from' => [
-        'email' => env('MAIL_FROM_ADDRESS', 'noreply@campusdigitale.it'),
+        'email' => env('MAIL_FROM_ADDRESS', 'info@campusdigitale.online'),
         'name' => env('MAIL_FROM_NAME', 'Campus Digitale Forma'),
     ],
     
