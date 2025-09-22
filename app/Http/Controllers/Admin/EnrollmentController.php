@@ -79,6 +79,11 @@ class EnrollmentController extends Controller
                 $enrollment->update(['order_id' => $order->id]);
             }
 
+            // If this is the Full Vision course (ID: 11), auto-enroll user in all other courses
+            if ($course->id == 11) {
+                $this->autoEnrollInAllCourses($user, $validated);
+            }
+
             // Send notification if requested
             if ($validated['send_notification'] ?? true) {
                 $user->notify(new CourseEnrollmentNotification($course, $enrollment));
@@ -216,6 +221,12 @@ class EnrollmentController extends Controller
                         'expires_at' => $validated['expiry_date'] ?? null,
                     ]);
 
+                    // If this is the Full Vision course (ID: 11), auto-enroll user in all other courses
+                    if ($course->id == 11) {
+                        $user = User::find($userId);
+                        $this->autoEnrollInAllCourses($user, $validated);
+                    }
+
                     // Send notification if requested
                     if ($validated['send_notification'] ?? true) {
                         $user = User::find($userId);
@@ -247,6 +258,47 @@ class EnrollmentController extends Controller
                 'message' => 'Errore durante le iscrizioni bulk',
                 'error' => $e->getMessage(),
             ], 500);
+        }
+    }
+
+    /**
+     * Auto-enroll user in all courses when Full Vision is assigned.
+     */
+    private function autoEnrollInAllCourses(User $user, array $validated): void
+    {
+        // Get all active courses except the Full Vision course itself
+        $allCourses = Course::where('is_active', true)
+            ->where('id', '!=', 11) // Exclude Full Vision course
+            ->get();
+
+        foreach ($allCourses as $course) {
+            // Check if user is already enrolled in this course
+            $existingEnrollment = Enrollment::where('user_id', $user->id)
+                ->where('course_id', $course->id)
+                ->first();
+
+            if (!$existingEnrollment) {
+                // Create enrollment for this course
+                Enrollment::create([
+                    'user_id' => $user->id,
+                    'course_id' => $course->id,
+                    'source' => 'full_vision',
+                    'status' => 'active',
+                    'started_at' => $validated['start_date'],
+                    'expires_at' => $validated['expiry_date'] ?? null,
+                ]);
+
+                // Send notification for each course if requested
+                if ($validated['send_notification'] ?? true) {
+                    $enrollment = Enrollment::where('user_id', $user->id)
+                        ->where('course_id', $course->id)
+                        ->first();
+                    
+                    if ($enrollment) {
+                        $user->notify(new CourseEnrollmentNotification($course, $enrollment));
+                    }
+                }
+            }
         }
     }
 }
