@@ -11,7 +11,11 @@
     <p class="message">
         <strong>I tuoi dati di accesso:</strong><br>
         Email: {{ $user->email }}<br>
-        Nome: {{ $user->name }}
+        Nome: {{ $user->name }}<br>
+        @if($temporaryPassword)
+        Password: <strong>{{ $temporaryPassword }}</strong><br>
+        <small style="color: #64748b;">Ti consigliamo di cambiare questa password al primo accesso per motivi di sicurezza.</small>
+        @endif
     </p>
     
     <div style="text-align: center; margin: 32px 0;">

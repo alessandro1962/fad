@@ -21,32 +21,32 @@
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
             <StatCard
                 title="Utenti Totali"
-                value="1,247"
+                :value="statistics.total_users?.value || '0'"
                 icon="users"
-                :change="12"
-                change-label="rispetto al mese scorso"
+                :change="statistics.total_users?.change || 0"
+                :change-label="statistics.total_users?.change_label || 'rispetto al mese scorso'"
                 :show-trend="true"
             />
             <StatCard
                 title="Corsi Attivi"
-                value="23"
+                :value="statistics.active_courses?.value || '0'"
                 icon="courses"
-                :change="8"
-                change-label="rispetto al mese scorso"
+                :change="statistics.active_courses?.change || 0"
+                :change-label="statistics.active_courses?.change_label || 'rispetto al mese scorso'"
             />
             <StatCard
                 title="Completamenti"
-                value="456"
+                :value="statistics.completions?.value || '0'"
                 icon="completed"
-                :change="25"
-                change-label="rispetto al mese scorso"
+                :change="statistics.completions?.change || 0"
+                :change-label="statistics.completions?.change_label || 'rispetto al mese scorso'"
             />
             <StatCard
                 title="Ricavi Mensili"
-                value="€12,450"
+                :value="statistics.monthly_revenue?.value || '€0'"
                 icon="revenue"
-                :change="18"
-                change-label="rispetto al mese scorso"
+                :change="statistics.monthly_revenue?.change || 0"
+                :change-label="statistics.monthly_revenue?.change_label || 'rispetto al mese scorso'"
             />
         </div>
 
@@ -55,8 +55,20 @@
             <!-- Recent Activity -->
             <div class="lg:col-span-2">
                 <div class="bg-white rounded-2xl shadow-sm border border-cdf-slate200 p-6">
-                    <h2 class="text-xl font-bold text-cdf-deep mb-6">Attività Recente</h2>
-                    <div class="space-y-4">
+                    <div class="flex items-center justify-between mb-6">
+                        <h2 class="text-xl font-bold text-cdf-deep">Attività Recente</h2>
+                        <button @click="loadStatistics" class="text-cdf-teal hover:text-cdf-deep transition-colors">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                            </svg>
+                        </button>
+                    </div>
+                    
+                    <div v-if="loading" class="flex items-center justify-center py-8">
+                        <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-cdf-teal"></div>
+                    </div>
+                    
+                    <div v-else class="space-y-4">
                         <div 
                             v-for="activity in recentActivities" 
                             :key="activity.id"
@@ -66,13 +78,19 @@
                                 class="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
                                 :class="activity.bgClass"
                             >
-                                <component :is="activity.icon" class="w-5 h-5" :class="activity.iconClass" />
+                                <svg class="w-5 h-5" :class="activity.iconClass" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z"></path>
+                                </svg>
                             </div>
                             <div class="flex-1">
                                 <h3 class="font-semibold text-cdf-deep">{{ activity.title }}</h3>
                                 <p class="text-sm text-cdf-slate700">{{ activity.description }}</p>
                                 <p class="text-xs text-cdf-slate700 mt-1">{{ activity.timestamp }}</p>
                             </div>
+                        </div>
+                        
+                        <div v-if="recentActivities.length === 0" class="text-center py-8 text-cdf-slate500">
+                            <p>Nessuna attività recente</p>
                         </div>
                     </div>
                 </div>
@@ -94,6 +112,12 @@
                             class="w-full btn-secondary block text-center"
                         >
                             Gestisci Utenti
+                        </router-link>
+                        <router-link 
+                            to="/admin/organizations"
+                            class="w-full btn-secondary block text-center"
+                        >
+                            Gestisci Aziende
                         </router-link>
                         <router-link 
                             to="/admin/analytics"
@@ -156,46 +180,35 @@
 </template>
 
 <script setup>
+import { ref, onMounted } from 'vue'
 import AppLayout from '@/components/Layout/AppLayout.vue';
 import StatCard from '@/components/Dashboard/StatCard.vue';
+import api from '@/api'
 
-// Sample admin data
-const recentActivities = [
-    {
-        id: 1,
-        title: 'Nuovo utente registrato',
-        description: 'Mario Rossi si è registrato alla piattaforma',
-        timestamp: '2 minuti fa',
-        icon: 'svg',
-        bgClass: 'bg-cdf-teal/10',
-        iconClass: 'text-cdf-teal'
-    },
-    {
-        id: 2,
-        title: 'Corso completato',
-        description: 'Anna Bianchi ha completato "Cybersecurity Base"',
-        timestamp: '15 minuti fa',
-        icon: 'svg',
-        bgClass: 'bg-cdf-amber/10',
-        iconClass: 'text-cdf-amber'
-    },
-    {
-        id: 3,
-        title: 'Nuovo acquisto',
-        description: 'Pacchetto Full Vision acquistato da Azienda XYZ',
-        timestamp: '1 ora fa',
-        icon: 'svg',
-        bgClass: 'bg-green-100',
-        iconClass: 'text-green-600'
-    },
-    {
-        id: 4,
-        title: 'Report generato',
-        description: 'Report mensile analytics completato',
-        timestamp: '2 ore fa',
-        icon: 'svg',
-        bgClass: 'bg-cdf-deep/10',
-        iconClass: 'text-cdf-deep'
-    }
-];
+// Reactive data
+const loading = ref(false)
+const statistics = ref({})
+const recentActivities = ref([])
+
+// Load dashboard statistics
+const loadStatistics = async () => {
+  try {
+    loading.value = true
+    const response = await api.get('/v1/admin/dashboard/statistics')
+    
+    statistics.value = response.data.data.statistics
+    recentActivities.value = response.data.data.recent_activities
+    
+    console.log('Dashboard statistics loaded:', response.data.data)
+  } catch (error) {
+    console.error('Error loading dashboard statistics:', error)
+  } finally {
+    loading.value = false
+  }
+}
+
+// Load statistics on component mount
+onMounted(() => {
+  loadStatistics()
+})
 </script>

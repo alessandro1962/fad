@@ -99,10 +99,30 @@
             />
           </div>
 
-          <!-- Company -->
+          <!-- Organization -->
           <div>
             <label class="block text-sm font-medium text-cdf-deep mb-2">
               Azienda
+            </label>
+            <select
+              v-model="form.organization_id"
+              class="w-full px-3 py-2 border border-cdf-slate200 rounded-lg focus:ring-2 focus:ring-cdf-teal focus:border-transparent"
+            >
+              <option value="">Seleziona azienda</option>
+              <option
+                v-for="org in organizations"
+                :key="org.id"
+                :value="org.id"
+              >
+                {{ org.name }}
+              </option>
+            </select>
+          </div>
+
+          <!-- Company (for display) -->
+          <div>
+            <label class="block text-sm font-medium text-cdf-deep mb-2">
+              Nome Azienda (display)
             </label>
             <input
               v-model="form.company"
@@ -132,6 +152,18 @@
             />
             <label class="ml-2 block text-sm text-cdf-deep">
               Amministratore
+            </label>
+          </div>
+
+          <!-- Company Manager Status -->
+          <div class="flex items-center">
+            <input
+              v-model="form.is_company_manager"
+              type="checkbox"
+              class="h-4 w-4 text-cdf-teal focus:ring-cdf-teal border-cdf-slate300 rounded"
+            />
+            <label class="ml-2 block text-sm text-cdf-deep">
+              Manager Aziendale
             </label>
           </div>
 
@@ -184,7 +216,7 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import api from '@/api'
 
 const props = defineProps({
@@ -205,12 +237,25 @@ const form = ref({
   email: '',
   password: '',
   password_confirmation: '',
+  organization_id: '',
   company: '',
   profession: '',
   is_admin: false,
+  is_company_manager: false,
   marketing_consent: false,
   privacy_consent: false
 })
+
+const organizations = ref([])
+
+const loadOrganizations = async () => {
+  try {
+    const response = await api.get('/v1/admin/organizations?all=true')
+    organizations.value = response.data.data
+  } catch (error) {
+    console.error('Error loading organizations:', error)
+  }
+}
 
 const createUser = async () => {
   loading.value = true
@@ -243,12 +288,18 @@ const closeModal = () => {
     email: '',
     password: '',
     password_confirmation: '',
+    organization_id: '',
     company: '',
     profession: '',
     is_admin: false,
+    is_company_manager: false,
     marketing_consent: false,
     privacy_consent: false
   }
   emit('close')
 }
+
+onMounted(() => {
+  loadOrganizations()
+})
 </script>

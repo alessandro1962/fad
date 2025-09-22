@@ -360,6 +360,13 @@ const startCourse = (course) => {
 
 // Load data when component mounts
 onMounted(() => {
+    // Check if user is a company manager and redirect
+    if (authStore.isCompanyManager) {
+        console.log('User is company manager, redirecting to company dashboard');
+        router.push('/company/dashboard');
+        return;
+    }
+    
     loadDashboardData();
 });
 </script>

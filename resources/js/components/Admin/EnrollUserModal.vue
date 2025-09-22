@@ -176,8 +176,10 @@ watch(() => props.isOpen, (isOpen) => {
 
 const loadUsers = async () => {
   try {
-    const response = await api.get('/v1/admin/users')
+    // Get all users for dropdown (not paginated)
+    const response = await api.get('/v1/admin/users?all=true')
     users.value = response.data.data || []
+    console.log('Loaded users for enrollment:', users.value.length)
   } catch (error) {
     console.error('Errore nel caricamento utenti:', error)
   }
@@ -185,8 +187,10 @@ const loadUsers = async () => {
 
 const loadCourses = async () => {
   try {
-    const response = await api.get('/v1/admin/courses')
+    // Get all courses for dropdown (not paginated)
+    const response = await api.get('/v1/admin/courses?all=true')
     courses.value = response.data.data || []
+    console.log('Loaded courses for enrollment:', courses.value.length)
   } catch (error) {
     console.error('Errore nel caricamento corsi:', error)
   }

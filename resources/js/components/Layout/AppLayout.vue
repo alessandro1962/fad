@@ -31,16 +31,10 @@
                             Catalogo
                         </router-link>
                         <router-link 
-                            to="/percorsi" 
+                            to="/i-miei-corsi" 
                             class="text-cdf-slate700 hover:text-cdf-deep font-medium transition-colors duration-200"
                         >
-                            Percorsi
-                        </router-link>
-                        <router-link 
-                            to="/aziende" 
-                            class="text-cdf-slate700 hover:text-cdf-deep font-medium transition-colors duration-200"
-                        >
-                            Aziende
+                            I Miei Corsi
                         </router-link>
                         <router-link 
                             to="/supporto" 
@@ -208,8 +202,8 @@
                         <h3 class="text-sm font-semibold text-cdf-deep uppercase tracking-wider mb-4">Link Rapidi</h3>
                         <ul class="space-y-3">
                             <li><router-link to="/catalogo" class="text-sm text-cdf-slate700 hover:text-cdf-deep transition-colors duration-200">Catalogo Corsi</router-link></li>
-                            <li><router-link to="/percorsi" class="text-sm text-cdf-slate700 hover:text-cdf-deep transition-colors duration-200">Percorsi Formativi</router-link></li>
-                            <li><router-link to="/aziende" class="text-sm text-cdf-slate700 hover:text-cdf-deep transition-colors duration-200">Soluzioni Aziendali</router-link></li>
+                            <li><router-link to="/i-miei-corsi" class="text-sm text-cdf-slate700 hover:text-cdf-deep transition-colors duration-200">I Miei Corsi</router-link></li>
+                            <li><router-link to="/attestati" class="text-sm text-cdf-slate700 hover:text-cdf-deep transition-colors duration-200">I Miei Attestati</router-link></li>
                             <li><router-link to="/supporto" class="text-sm text-cdf-slate700 hover:text-cdf-deep transition-colors duration-200">Supporto</router-link></li>
                         </ul>
                     </div>

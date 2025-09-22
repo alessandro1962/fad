@@ -10,10 +10,10 @@ return [
     |
     */
     
-    'api_key' => env('MAIL_PASSWORD'),
+    'api_key' => env('SENDGRID_API_KEY'),
     
     'from' => [
-        'email' => env('MAIL_FROM_ADDRESS', 'info@campusdigitale.online'),
+        'email' => env('MAIL_FROM_ADDRESS', 'noreply@campusdigitale.it'),
         'name' => env('MAIL_FROM_NAME', 'Campus Digitale Forma'),
     ],
     

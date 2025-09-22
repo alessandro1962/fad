@@ -114,12 +114,23 @@ Route::prefix('v1')->group(function () {
             Route::apiResource('lessons', App\Http\Controllers\Admin\LessonController::class);
             Route::post('lessons/reorder', [App\Http\Controllers\Admin\LessonController::class, 'reorder']);
             
+            // Dashboard statistics
+            Route::get('dashboard/statistics', [App\Http\Controllers\Admin\DashboardController::class, 'statistics']);
+            
             // User management
             Route::get('users/statistics', [App\Http\Controllers\Admin\UserController::class, 'statistics']);
             Route::post('users/import-csv', [App\Http\Controllers\Admin\UserController::class, 'importCsv']);
             Route::get('users/download-template', [App\Http\Controllers\Admin\UserController::class, 'downloadTemplate']);
             Route::apiResource('users', App\Http\Controllers\Admin\UserController::class);
             Route::patch('users/{user}/toggle-admin', [App\Http\Controllers\Admin\UserController::class, 'toggleAdmin']);
+            
+            // Organization management
+            Route::get('organizations/unassigned-users', [App\Http\Controllers\Admin\OrganizationController::class, 'unassignedUsers']);
+            Route::apiResource('organizations', App\Http\Controllers\Admin\OrganizationController::class);
+            Route::get('organizations/{organization}/statistics', [App\Http\Controllers\Admin\OrganizationController::class, 'statistics']);
+            Route::post('organizations/{organization}/assign-users', [App\Http\Controllers\Admin\OrganizationController::class, 'assignUsers']);
+            Route::post('organizations/{organization}/remove-users', [App\Http\Controllers\Admin\OrganizationController::class, 'removeUsers']);
+            Route::post('organizations/{organization}/create-company-manager', [App\Http\Controllers\Admin\OrganizationController::class, 'createCompanyManager']);
             
                 // Analytics
                 Route::get('analytics', [AnalyticsController::class, 'index']);
@@ -140,6 +151,19 @@ Route::prefix('v1')->group(function () {
                     Route::post('sync', [WooCommerceController::class, 'syncAll']);
                     Route::post('test-connection', [WooCommerceController::class, 'testConnection']);
                 });
+        });
+
+        // Company routes (protected)
+        Route::prefix('company')->group(function () {
+            // Dashboard statistics
+            Route::get('dashboard/statistics', [App\Http\Controllers\Company\CompanyDashboardController::class, 'statistics']);
+            
+            // Employees management
+            Route::get('employees', [App\Http\Controllers\Company\CompanyDashboardController::class, 'employees']);
+            Route::get('employees/{employeeId}', [App\Http\Controllers\Company\CompanyDashboardController::class, 'employeeDetails']);
+            
+            // Courses assigned to company
+            Route::get('courses', [App\Http\Controllers\Company\CompanyDashboardController::class, 'courses']);
         });
     });
     

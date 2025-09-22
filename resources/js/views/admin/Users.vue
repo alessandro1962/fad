@@ -103,8 +103,50 @@
             </select>
           </div>
         </div>
+        
+        <!-- Additional Filters -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+          <!-- Per Page -->
+          <div>
+            <label class="block text-sm font-medium text-cdf-deep mb-2">Elementi per pagina</label>
+            <select
+              v-model="pagination.per_page"
+              class="w-full px-3 py-2 border border-cdf-slate200 rounded-lg focus:ring-2 focus:ring-cdf-teal focus:border-transparent"
+              @change="loadUsers(1)"
+            >
+              <option value="10">10</option>
+              <option value="15">15</option>
+              <option value="25">25</option>
+              <option value="50">50</option>
+              <option value="100">100</option>
+            </select>
+          </div>
+          
+          <!-- Sort Order -->
+          <div>
+            <label class="block text-sm font-medium text-cdf-deep mb-2">Ordine</label>
+            <select
+              v-model="filters.sort_order"
+              class="w-full px-3 py-2 border border-cdf-slate200 rounded-lg focus:ring-2 focus:ring-cdf-teal focus:border-transparent"
+              @change="loadUsers"
+            >
+              <option value="desc">Decrescente</option>
+              <option value="asc">Crescente</option>
+            </select>
+          </div>
+        </div>
       </div>
 
+      <!-- Statistics and Info -->
+      <div class="flex justify-between items-center mb-6">
+        <div class="text-sm text-cdf-slate600">
+          Mostrando {{ users.length }} di {{ pagination.total }} utenti
+        </div>
+        <div class="text-sm text-cdf-slate600">
+          Pagina {{ pagination.current_page }} di {{ pagination.last_page }}
+        </div>
+      </div>
+      
       <!-- Statistics -->
       <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
         <div class="bg-white rounded-xl shadow-sm border border-cdf-slate200 p-6">

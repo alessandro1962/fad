@@ -5,7 +5,7 @@ namespace App\Console\Commands;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\File;
 use SendGrid\Mail\Mail;
-use SendGrid\SendGrid;
+use SendGrid;
 
 class SetupSendGrid extends Command
 {

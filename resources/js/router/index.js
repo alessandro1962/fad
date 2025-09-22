@@ -124,6 +124,25 @@ const routes = [
         component: () => import('@/views/admin/CertificateTemplates.vue'),
         meta: { requiresAuth: true, requiresAdmin: true }
     },
+    {
+        path: '/admin/organizations',
+        name: 'admin-organizations',
+        component: () => import('@/views/admin/Organizations.vue'),
+        meta: { requiresAuth: true, requiresAdmin: true }
+    },
+    // Company routes
+    {
+        path: '/company/dashboard',
+        name: 'company-dashboard',
+        component: () => import('@/views/company/Dashboard.vue'),
+        meta: { requiresAuth: true, requiresCompanyManager: true }
+    },
+    {
+        path: '/company/employees/:employeeId',
+        name: 'company-employee-details',
+        component: () => import('@/views/company/EmployeeDetails.vue'),
+        meta: { requiresAuth: true, requiresCompanyManager: true }
+    },
 ];
 
 const router = createRouter({
@@ -138,8 +157,17 @@ router.beforeEach((to, from, next) => {
     if (to.meta.requiresAuth && !authStore.isAuthenticated) {
         next('/login');
     } else if (to.meta.guest && authStore.isAuthenticated) {
-        next(authStore.isAdmin ? '/admin' : '/dashboard');
+        // Redirect based on user role
+        if (authStore.isAdmin) {
+            next('/admin');
+        } else if (authStore.isCompanyManager) {
+            next('/company/dashboard');
+        } else {
+            next('/dashboard');
+        }
     } else if (to.meta.requiresAdmin && !authStore.isAdmin) {
+        next('/dashboard');
+    } else if (to.meta.requiresCompanyManager && !authStore.isCompanyManager) {
         next('/dashboard');
     } else {
         next();

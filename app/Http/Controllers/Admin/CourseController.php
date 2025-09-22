@@ -54,6 +54,14 @@ class CourseController extends Controller
         $sortOrder = $request->get('sort_order', 'desc');
         $query->orderBy($sortBy, $sortOrder);
 
+        // Check if all courses are requested (for dropdowns)
+        if ($request->boolean('all')) {
+            $courses = $query->get();
+            return response()->json([
+                'data' => $courses
+            ]);
+        }
+
         $courses = $query->paginate(15);
 
         return response()->json([

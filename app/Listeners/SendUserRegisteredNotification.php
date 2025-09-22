@@ -4,12 +4,8 @@ namespace App\Listeners;
 
 use App\Events\UserRegistered;
 use App\Notifications\UserRegisteredNotification;
-use Illuminate\Contracts\Queue\ShouldQueue;
-use Illuminate\Queue\InteractsWithQueue;
-
-class SendUserRegisteredNotification implements ShouldQueue
+class SendUserRegisteredNotification
 {
-    use InteractsWithQueue;
 
     /**
      * Create the event listener.
@@ -24,7 +20,9 @@ class SendUserRegisteredNotification implements ShouldQueue
      */
     public function handle(UserRegistered $event): void
     {
+        \Log::info('SendUserRegisteredNotification: Invio email a ' . $event->user->email . ' con password: ' . $event->temporaryPassword);
         // Invia notifica di benvenuto all'utente appena registrato
-        $event->user->notify(new UserRegisteredNotification($event->user));
+        $event->user->notify(new UserRegisteredNotification($event->user, $event->temporaryPassword));
+        \Log::info('SendUserRegisteredNotification: Email inviata con successo');
     }
 }

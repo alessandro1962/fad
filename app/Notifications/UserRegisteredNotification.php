@@ -8,18 +8,20 @@ use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 use App\Models\User;
 
-class UserRegisteredNotification extends Notification implements ShouldQueue
+class UserRegisteredNotification extends Notification
 {
     use Queueable;
 
     protected $user;
+    protected $temporaryPassword;
 
     /**
      * Create a new notification instance.
      */
-    public function __construct(User $user)
+    public function __construct(User $user, ?string $temporaryPassword = null)
     {
         $this->user = $user;
+        $this->temporaryPassword = $temporaryPassword;
     }
 
     /**
@@ -39,7 +41,10 @@ class UserRegisteredNotification extends Notification implements ShouldQueue
     {
         return (new MailMessage)
             ->subject('Benvenuto su Campus Digitale Forma! 🎉')
-            ->view('emails.user-registered', ['user' => $this->user]);
+            ->view('emails.user-registered', [
+                'user' => $this->user,
+                'temporaryPassword' => $this->temporaryPassword
+            ]);
     }
 
     /**

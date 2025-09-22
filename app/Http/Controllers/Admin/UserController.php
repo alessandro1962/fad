@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Events\UserRegistered;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Validation\Rule;
@@ -12,6 +13,7 @@ use Maatwebsite\Excel\Concerns\ToModel;
 use Maatwebsite\Excel\Concerns\WithHeadingRow;
 use Maatwebsite\Excel\Concerns\WithValidation;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 use App\Imports\UsersImport;
 use App\Exports\UsersImportTemplate;
 
@@ -55,6 +57,14 @@ class UserController extends Controller
         $sortOrder = $request->get('sort_order', 'desc');
         $query->orderBy($sortBy, $sortOrder);
 
+        // Check if all users are requested (for dropdowns)
+        if ($request->boolean('all')) {
+            $users = $query->get();
+            return response()->json([
+                'data' => $users
+            ]);
+        }
+
         // Pagination
         $perPage = $request->get('per_page', 15);
         $users = $query->paginate($perPage);
@@ -90,14 +100,23 @@ class UserController extends Controller
             'company' => ['nullable', 'string', 'max:255'],
             'profession' => ['nullable', 'string', 'max:255'],
             'is_admin' => ['boolean'],
+            'is_company_manager' => ['boolean'],
             'marketing_consent' => ['boolean'],
             'privacy_consent' => ['boolean'],
         ]);
 
+        // Salva la password in chiaro per l'email (prima di criptarla)
+        $plainPassword = $validated['password'];
         $validated['password'] = bcrypt($validated['password']);
         $validated['email_verified_at'] = now();
 
         $user = User::create($validated);
+
+        // Scatena l'evento di registrazione per inviare l'email di benvenuto
+        // Passa la password in chiaro che l'admin ha inserito
+        \Log::info('Scateno evento UserRegistered per utente: ' . $user->email . ' con password: ' . $plainPassword);
+        event(new UserRegistered($user, $plainPassword));
+        \Log::info('Evento UserRegistered scatenato con successo');
 
         return response()->json([
             'message' => 'Utente creato con successo',

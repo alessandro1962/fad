@@ -37,6 +37,7 @@ class User extends Authenticatable
         'last_login_at',
         'email_verified_at',
         'is_admin',
+        'is_company_manager',
     ];
 
     /**
@@ -63,6 +64,7 @@ class User extends Authenticatable
             'marketing_consent' => 'boolean',
             'privacy_consent' => 'boolean',
             'is_admin' => 'boolean',
+            'is_company_manager' => 'boolean',
         ];
     }
 

@@ -9,7 +9,7 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 
-class CourseEnrollmentNotification extends Notification implements ShouldQueue
+class CourseEnrollmentNotification extends Notification
 {
     use Queueable;
 
@@ -39,13 +39,16 @@ class CourseEnrollmentNotification extends Notification implements ShouldQueue
     public function toMail($notifiable): MailMessage
     {
         $url = url('/corso/' . $this->course->id);
+        
+        // Pulisce il contenuto HTML della descrizione
+        $cleanDescription = $this->cleanDescription($this->course->description);
 
         return (new MailMessage)
             ->subject('Sei stato iscritto al corso: ' . $this->course->title)
             ->greeting('Ciao ' . $notifiable->name . '!')
             ->line('Siamo felici di informarti che sei stato iscritto al corso:')
             ->line('**' . $this->course->title . '**')
-            ->line($this->course->description)
+            ->line($cleanDescription)
             ->line('**Dettagli del corso:**')
             ->line('• Livello: ' . $this->course->level)
             ->line('• Durata: ' . $this->course->duration_minutes . ' minuti')
@@ -56,6 +59,29 @@ class CourseEnrollmentNotification extends Notification implements ShouldQueue
             ->action('Inizia il Corso', $url)
             ->line('Buon apprendimento!')
             ->salutation('Il Team di Campus Digitale Forma');
+    }
+    
+    /**
+     * Pulisce il contenuto HTML della descrizione
+     */
+    private function cleanDescription($description)
+    {
+        if (empty($description)) {
+            return 'Nessuna descrizione disponibile.';
+        }
+        
+        // Rimuove i tag HTML e converte in testo pulito
+        $clean = strip_tags($description);
+        
+        // Rimuove spazi multipli e newline
+        $clean = preg_replace('/\s+/', ' ', $clean);
+        
+        // Limita la lunghezza per l'email
+        if (strlen($clean) > 500) {
+            $clean = substr($clean, 0, 500) . '...';
+        }
+        
+        return trim($clean);
     }
 
     /**
