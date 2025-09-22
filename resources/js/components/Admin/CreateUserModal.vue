@@ -1,6 +1,6 @@
 <template>
-  <div v-if="isOpen" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-    <div class="bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
+  <div v-if="isOpen" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+    <div class="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
       <!-- Header -->
       <div class="flex items-center justify-between p-6 border-b border-cdf-slate200">
         <h3 class="text-lg font-semibold text-cdf-deep">
@@ -18,177 +18,186 @@
 
       <!-- Content -->
       <div class="p-6">
-        <form @submit.prevent="createUser" class="space-y-4">
-          <!-- Name -->
-          <div>
-            <label class="block text-sm font-medium text-cdf-deep mb-2">
-              Nome Completo *
-            </label>
-            <input
-              v-model="form.name"
-              type="text"
-              class="w-full px-3 py-2 border border-cdf-slate200 rounded-lg focus:ring-2 focus:ring-cdf-teal focus:border-transparent"
-              required
-            />
+        <form @submit.prevent="createUser" class="space-y-6">
+          <!-- Informazioni Personali -->
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <!-- Name -->
+            <div>
+              <label class="block text-sm font-medium text-cdf-deep mb-2">
+                Nome Completo *
+              </label>
+              <input
+                v-model="form.name"
+                type="text"
+                class="w-full px-3 py-2 border border-cdf-slate200 rounded-lg focus:ring-2 focus:ring-cdf-teal focus:border-transparent"
+                required
+              />
+            </div>
+
+            <!-- Email -->
+            <div>
+              <label class="block text-sm font-medium text-cdf-deep mb-2">
+                Email *
+              </label>
+              <input
+                v-model="form.email"
+                type="email"
+                class="w-full px-3 py-2 border border-cdf-slate200 rounded-lg focus:ring-2 focus:ring-cdf-teal focus:border-transparent"
+                required
+              />
+            </div>
+
+            <!-- First Name -->
+            <div>
+              <label class="block text-sm font-medium text-cdf-deep mb-2">
+                Nome *
+              </label>
+              <input
+                v-model="form.first_name"
+                type="text"
+                class="w-full px-3 py-2 border border-cdf-slate200 rounded-lg focus:ring-2 focus:ring-cdf-teal focus:border-transparent"
+                required
+              />
+            </div>
+
+            <!-- Last Name -->
+            <div>
+              <label class="block text-sm font-medium text-cdf-deep mb-2">
+                Cognome *
+              </label>
+              <input
+                v-model="form.last_name"
+                type="text"
+                class="w-full px-3 py-2 border border-cdf-slate200 rounded-lg focus:ring-2 focus:ring-cdf-teal focus:border-transparent"
+                required
+              />
+            </div>
+
+            <!-- Password -->
+            <div>
+              <label class="block text-sm font-medium text-cdf-deep mb-2">
+                Password *
+              </label>
+              <input
+                v-model="form.password"
+                type="password"
+                class="w-full px-3 py-2 border border-cdf-slate200 rounded-lg focus:ring-2 focus:ring-cdf-teal focus:border-transparent"
+                required
+                minlength="8"
+              />
+            </div>
+
+            <!-- Password Confirmation -->
+            <div>
+              <label class="block text-sm font-medium text-cdf-deep mb-2">
+                Conferma Password *
+              </label>
+              <input
+                v-model="form.password_confirmation"
+                type="password"
+                class="w-full px-3 py-2 border border-cdf-slate200 rounded-lg focus:ring-2 focus:ring-cdf-teal focus:border-transparent"
+                required
+                minlength="8"
+              />
+            </div>
           </div>
 
-          <!-- First Name -->
-          <div>
-            <label class="block text-sm font-medium text-cdf-deep mb-2">
-              Nome *
-            </label>
-            <input
-              v-model="form.first_name"
-              type="text"
-              class="w-full px-3 py-2 border border-cdf-slate200 rounded-lg focus:ring-2 focus:ring-cdf-teal focus:border-transparent"
-              required
-            />
-          </div>
-
-          <!-- Last Name -->
-          <div>
-            <label class="block text-sm font-medium text-cdf-deep mb-2">
-              Cognome *
-            </label>
-            <input
-              v-model="form.last_name"
-              type="text"
-              class="w-full px-3 py-2 border border-cdf-slate200 rounded-lg focus:ring-2 focus:ring-cdf-teal focus:border-transparent"
-              required
-            />
-          </div>
-
-          <!-- Email -->
-          <div>
-            <label class="block text-sm font-medium text-cdf-deep mb-2">
-              Email *
-            </label>
-            <input
-              v-model="form.email"
-              type="email"
-              class="w-full px-3 py-2 border border-cdf-slate200 rounded-lg focus:ring-2 focus:ring-cdf-teal focus:border-transparent"
-              required
-            />
-          </div>
-
-          <!-- Password -->
-          <div>
-            <label class="block text-sm font-medium text-cdf-deep mb-2">
-              Password *
-            </label>
-            <input
-              v-model="form.password"
-              type="password"
-              class="w-full px-3 py-2 border border-cdf-slate200 rounded-lg focus:ring-2 focus:ring-cdf-teal focus:border-transparent"
-              required
-              minlength="8"
-            />
-          </div>
-
-          <!-- Password Confirmation -->
-          <div>
-            <label class="block text-sm font-medium text-cdf-deep mb-2">
-              Conferma Password *
-            </label>
-            <input
-              v-model="form.password_confirmation"
-              type="password"
-              class="w-full px-3 py-2 border border-cdf-slate200 rounded-lg focus:ring-2 focus:ring-cdf-teal focus:border-transparent"
-              required
-              minlength="8"
-            />
-          </div>
-
-          <!-- Organization -->
-          <div>
-            <label class="block text-sm font-medium text-cdf-deep mb-2">
-              Azienda
-            </label>
-            <select
-              v-model="form.organization_id"
-              class="w-full px-3 py-2 border border-cdf-slate200 rounded-lg focus:ring-2 focus:ring-cdf-teal focus:border-transparent"
-            >
-              <option value="">Seleziona azienda</option>
-              <option
-                v-for="org in organizations"
-                :key="org.id"
-                :value="org.id"
+          <!-- Informazioni Aziendali -->
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <!-- Organization -->
+            <div>
+              <label class="block text-sm font-medium text-cdf-deep mb-2">
+                Azienda
+              </label>
+              <select
+                v-model="form.organization_id"
+                class="w-full px-3 py-2 border border-cdf-slate200 rounded-lg focus:ring-2 focus:ring-cdf-teal focus:border-transparent"
               >
-                {{ org.name }}
-              </option>
-            </select>
+                <option value="">Seleziona azienda</option>
+                <option
+                  v-for="org in organizations"
+                  :key="org.id"
+                  :value="org.id"
+                >
+                  {{ org.name }}
+                </option>
+              </select>
+            </div>
+
+            <!-- Company (for display) -->
+            <div>
+              <label class="block text-sm font-medium text-cdf-deep mb-2">
+                Nome Azienda (display)
+              </label>
+              <input
+                v-model="form.company"
+                type="text"
+                class="w-full px-3 py-2 border border-cdf-slate200 rounded-lg focus:ring-2 focus:ring-cdf-teal focus:border-transparent"
+              />
+            </div>
+
+            <!-- Profession -->
+            <div>
+              <label class="block text-sm font-medium text-cdf-deep mb-2">
+                Professione
+              </label>
+              <input
+                v-model="form.profession"
+                type="text"
+                class="w-full px-3 py-2 border border-cdf-slate200 rounded-lg focus:ring-2 focus:ring-cdf-teal focus:border-transparent"
+              />
+            </div>
           </div>
 
-          <!-- Company (for display) -->
-          <div>
-            <label class="block text-sm font-medium text-cdf-deep mb-2">
-              Nome Azienda (display)
-            </label>
-            <input
-              v-model="form.company"
-              type="text"
-              class="w-full px-3 py-2 border border-cdf-slate200 rounded-lg focus:ring-2 focus:ring-cdf-teal focus:border-transparent"
-            />
-          </div>
+          <!-- Permessi e Consensi -->
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <!-- Admin Status -->
+            <div class="flex items-center">
+              <input
+                v-model="form.is_admin"
+                type="checkbox"
+                class="h-4 w-4 text-cdf-teal focus:ring-cdf-teal border-cdf-slate300 rounded"
+              />
+              <label class="ml-2 block text-sm text-cdf-deep">
+                Amministratore
+              </label>
+            </div>
 
-          <!-- Profession -->
-          <div>
-            <label class="block text-sm font-medium text-cdf-deep mb-2">
-              Professione
-            </label>
-            <input
-              v-model="form.profession"
-              type="text"
-              class="w-full px-3 py-2 border border-cdf-slate200 rounded-lg focus:ring-2 focus:ring-cdf-teal focus:border-transparent"
-            />
-          </div>
+            <!-- Company Manager Status -->
+            <div class="flex items-center">
+              <input
+                v-model="form.is_company_manager"
+                type="checkbox"
+                class="h-4 w-4 text-cdf-teal focus:ring-cdf-teal border-cdf-slate300 rounded"
+              />
+              <label class="ml-2 block text-sm text-cdf-deep">
+                Manager Aziendale
+              </label>
+            </div>
 
-          <!-- Admin Status -->
-          <div class="flex items-center">
-            <input
-              v-model="form.is_admin"
-              type="checkbox"
-              class="h-4 w-4 text-cdf-teal focus:ring-cdf-teal border-cdf-slate300 rounded"
-            />
-            <label class="ml-2 block text-sm text-cdf-deep">
-              Amministratore
-            </label>
-          </div>
+            <!-- Marketing Consent -->
+            <div class="flex items-center">
+              <input
+                v-model="form.marketing_consent"
+                type="checkbox"
+                class="h-4 w-4 text-cdf-teal focus:ring-cdf-teal border-cdf-slate300 rounded"
+              />
+              <label class="ml-2 block text-sm text-cdf-deep">
+                Consenso Marketing
+              </label>
+            </div>
 
-          <!-- Company Manager Status -->
-          <div class="flex items-center">
-            <input
-              v-model="form.is_company_manager"
-              type="checkbox"
-              class="h-4 w-4 text-cdf-teal focus:ring-cdf-teal border-cdf-slate300 rounded"
-            />
-            <label class="ml-2 block text-sm text-cdf-deep">
-              Manager Aziendale
-            </label>
-          </div>
-
-          <!-- Marketing Consent -->
-          <div class="flex items-center">
-            <input
-              v-model="form.marketing_consent"
-              type="checkbox"
-              class="h-4 w-4 text-cdf-teal focus:ring-cdf-teal border-cdf-slate300 rounded"
-            />
-            <label class="ml-2 block text-sm text-cdf-deep">
-              Consenso Marketing
-            </label>
-          </div>
-
-          <!-- Privacy Consent -->
-          <div class="flex items-center">
-            <input
-              v-model="form.privacy_consent"
-              type="checkbox"
-              class="h-4 w-4 text-cdf-teal focus:ring-cdf-teal border-cdf-slate300 rounded"
-            />
-            <label class="ml-2 block text-sm text-cdf-deep">
-              Consenso Privacy
-            </label>
+            <!-- Privacy Consent -->
+            <div class="flex items-center">
+              <input
+                v-model="form.privacy_consent"
+                type="checkbox"
+                class="h-4 w-4 text-cdf-teal focus:ring-cdf-teal border-cdf-slate300 rounded"
+              />
+              <label class="ml-2 block text-sm text-cdf-deep">
+                Consenso Privacy
+              </label>
+            </div>
           </div>
 
           <!-- Actions -->
