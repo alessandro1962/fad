@@ -290,7 +290,7 @@ const loadDashboardData = async () => {
         const enrollments = enrollmentsResponse.data.data;
         
         // Map courses for display
-        courses.value = enrollments.slice(0, 3).map(enrollment => ({
+        courses.value = enrollments.map(enrollment => ({
             id: enrollment.course.id,
             title: enrollment.course.title,
             progress: enrollment.progress_percentage || 0,
