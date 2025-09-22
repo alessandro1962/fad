@@ -39,7 +39,7 @@ const routes = [
     {
         path: '/corso-autenticato/:id',
         name: 'course-authenticated',
-        component: () => import('@/views/Course.vue'),
+        component: () => import('@/views/CoursePlayer.vue'),
         meta: { requiresAuth: true }
     },
     {

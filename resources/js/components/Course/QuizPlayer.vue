@@ -354,6 +354,7 @@ const formatTime = (seconds) => {
   return `${minutes}:${secs.toString().padStart(2, '0')}`
 }
 
+
 const startQuizAttempt = async () => {
   try {
     const response = await api.post(`/v1/quizzes/${quizData.value.id}/start`)

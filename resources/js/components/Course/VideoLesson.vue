@@ -1,7 +1,7 @@
 <template>
-  <div class="video-player-container">
+  <div class="video-lesson">
     <!-- Video Container -->
-    <div class="relative bg-black rounded-xl overflow-hidden">
+    <div class="relative bg-black rounded-xl overflow-hidden mb-6">
       <!-- Vimeo Player -->
       <div v-if="videoProvider === 'vimeo'" class="aspect-video relative">
         <iframe
@@ -12,7 +12,6 @@
           allowfullscreen
           class="w-full h-full"
           @load="onPlayerLoad"
-          @click="onVideoClick"
         ></iframe>
         
         <!-- Custom Controls Overlay -->
@@ -47,8 +46,6 @@
               </div>
             </div>
           </div>
-          
-          
         </div>
       </div>
 
@@ -90,80 +87,38 @@
           <p>Caricamento video...</p>
         </div>
       </div>
-
-      <!-- Progress Overlay - Temporarily disabled -->
-      <!-- 
-      <div v-if="showProgressOverlay" class="absolute inset-0 bg-black/80 flex items-center justify-center">
-        <div class="text-white text-center max-w-md mx-4">
-          <div class="w-16 h-16 mx-auto mb-4 rounded-full bg-cdf-teal/20 flex items-center justify-center">
-            <svg class="w-8 h-8 text-cdf-teal" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-            </svg>
-          </div>
-          <h3 class="text-xl font-bold mb-2">Completa la lezione per continuare</h3>
-          <p class="text-gray-300 mb-4">
-            Devi guardare almeno il {{ Math.round(completionThreshold * 100) }}% del video per sbloccare la prossima lezione.
-          </p>
-          <div class="w-full bg-gray-700 rounded-full h-2 mb-4">
-            <div 
-              class="bg-cdf-teal h-2 rounded-full transition-all duration-500"
-              :style="{ width: `${progressPercentage}%` }"
-            ></div>
-          </div>
-          <p class="text-sm text-gray-400">
-            Progresso: {{ Math.round(progressPercentage) }}% / {{ Math.round(completionThreshold * 100) }}%
-          </p>
-          <button
-            @click="hideProgressOverlay"
-            class="mt-4 bg-cdf-teal text-white px-6 py-2 rounded-lg font-semibold hover:bg-cdf-deep transition-colors"
-          >
-            Inizia a Guardare
-          </button>
-        </div>
-      </div>
-      -->
     </div>
 
     <!-- Video Controls -->
-    <div class="mt-4 space-y-4">
-      <!-- Progress Bar (Only show if not completed) -->
-      <div v-if="!isCompleted" class="w-full bg-cdf-slate200 rounded-full h-2">
+    <div class="space-y-4">
+      <!-- Progress Bar -->
+      <div class="w-full bg-cdf-slate200 rounded-full h-2">
         <div 
           class="bg-gradient-to-r from-cdf-teal to-cdf-deep h-2 rounded-full transition-all duration-500"
           :style="{ width: `${progressPercentage}%` }"
         ></div>
       </div>
       
-      <!-- Progress Info (Only show if not completed) -->
-      <div v-if="!isCompleted" class="flex items-center justify-between text-sm text-cdf-slate700">
+      <!-- Progress Info -->
+      <div class="flex items-center justify-between text-sm text-cdf-slate700">
         <span>Durata: {{ formatTime(totalDuration) }}</span>
         <span>Guardato: {{ formatTime(watchedTime) }}</span>
-        <span class="font-semibold text-cdf-slate700">
-          {{ Math.round(progressPercentage) }}%
+        <span class="font-semibold" :class="isCompleted ? 'text-green-600' : 'text-cdf-slate700'">
+          {{ isCompleted ? 'Completato' : `${Math.round(progressPercentage)}%` }}
         </span>
       </div>
-      
-      <!-- Completed Status (Only show if completed) -->
-      <div v-else class="flex items-center justify-center text-sm text-green-600 font-semibold">
-        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-        </svg>
-        Lezione completata
-      </div>
 
-      <!-- Action Buttons (Only show if not completed) -->
-      <div v-if="!isCompleted" class="flex gap-3">
+      <!-- Action Buttons -->
+      <div class="flex gap-3">
         <button
+          v-if="!isCompleted"
           disabled
           class="flex-1 bg-gray-300 text-gray-500 px-4 py-2 rounded-lg font-semibold cursor-not-allowed"
         >
           Guarda il video completo per continuare
         </button>
-      </div>
-      
-      <!-- Completed Action Button -->
-      <div v-else class="flex gap-3">
         <button
+          v-else
           @click="proceedToNext"
           class="flex-1 bg-cdf-amber text-cdf-ink px-4 py-2 rounded-lg font-semibold hover:brightness-95 transition-colors"
         >
@@ -175,7 +130,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import api from '@/api'
 import Player from '@vimeo/player'
 
@@ -188,17 +143,13 @@ const props = defineProps({
     type: Object,
     default: () => ({})
   },
-  blockProgression: {
-    type: Boolean,
-    default: true
-  },
   isLastLesson: {
     type: Boolean,
     default: false
   }
 })
 
-const emit = defineEmits(['progress-updated', 'lesson-completed', 'next-lesson', 'course-completed'])
+const emit = defineEmits(['lesson-completed', 'progress-updated', 'error'])
 
 // Refs
 const vimeoPlayer = ref(null)
@@ -206,7 +157,6 @@ const vimeoPlayerInstance = ref(null)
 const youtubePlayer = ref(null)
 const videoElement = ref(null)
 const loading = ref(true)
-const showProgressOverlay = ref(false)
 const showInstructions = ref(true)
 
 // State
@@ -219,7 +169,6 @@ const lastPosition = ref(0)
 const videoProvider = computed(() => {
   return props.lesson.payload?.provider || 'upload'
 })
-
 
 const videoId = computed(() => {
   return props.lesson.payload?.video_id || ''
@@ -281,11 +230,6 @@ const progressPercentage = computed(() => {
   return Math.min(100, (watchedTime.value / totalDuration.value) * 100)
 })
 
-const canProceed = computed(() => {
-  if (!props.blockProgression) return true
-  return progressPercentage.value >= (completionThreshold.value * 100)
-})
-
 // Methods
 const extractYouTubeId = (url) => {
   const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/
@@ -309,19 +253,17 @@ const formatTime = (seconds) => {
 const onPlayerLoad = async () => {
   loading.value = false
   
-  // Carica il progresso esistente invece di resettarlo
+  // Carica il progresso esistente
   await loadExistingProgress()
   
   // Per Vimeo, inizializza il player con API ufficiale
   if (videoProvider.value === 'vimeo') {
-    // Aspetta un po' per assicurarsi che l'iframe sia caricato
     setTimeout(() => {
       initializeVimeoPlayer()
     }, 1000)
   }
 }
 
-// Inizializza il player Vimeo con API ufficiale
 const initializeVimeoPlayer = async () => {
   try {
     const vimeoId = extractVimeoId(videoId.value)
@@ -351,6 +293,7 @@ const initializeVimeoPlayer = async () => {
     
     player.on('play', () => {
       console.log('Video in riproduzione')
+      hideInstructions()
     })
     
     player.on('pause', () => {
@@ -358,9 +301,7 @@ const initializeVimeoPlayer = async () => {
     })
     
     player.on('ended', () => {
-      console.log('Video Vimeo terminato - mostro pulsante')
-      // Non chiamiamo più markVideoCompleted automaticamente
-      // L'utente deve cliccare il bottone per procedere
+      console.log('Video Vimeo terminato')
       watchedTime.value = totalDuration.value
       isCompleted.value = true
       saveProgress()
@@ -380,7 +321,6 @@ const initializeVimeoPlayer = async () => {
   }
 }
 
-// Estrai ID Vimeo dall'URL
 const extractVimeoId = (videoId) => {
   if (!videoId) return null
   
@@ -394,26 +334,10 @@ const extractVimeoId = (videoId) => {
   return match ? match[1] : null
 }
 
-
-
-const hideProgressOverlay = () => {
-  showProgressOverlay.value = false
-}
-
 const hideInstructions = () => {
   showInstructions.value = false
 }
 
-
-
-
-
-// Gestisce il click sul video
-const onVideoClick = () => {
-  hideInstructions()
-}
-
-// Carica il progresso esistente
 const loadExistingProgress = async () => {
   try {
     // Carica il progresso dal props se disponibile
@@ -441,7 +365,6 @@ const loadExistingProgress = async () => {
   }
 }
 
-// Salva il progresso
 const saveProgress = async () => {
   try {
     const progressData = {
@@ -461,26 +384,21 @@ const saveProgress = async () => {
     console.log('Progresso salvato:', progressData)
   } catch (error) {
     console.error('Errore nel salvataggio progresso:', error)
+    emit('error', error)
   }
 }
 
-// Marca il video come completato
-const markVideoCompleted = () => {
-  console.log('Video marcato come completato dall\'utente')
-  watchedTime.value = totalDuration.value
-  isCompleted.value = true
-  
-  // Salva il progresso
-  saveProgress()
-  
-  // Emetti evento di completamento
-  emit('lesson-completed', props.lesson)
+const proceedToNext = () => {
+  if (isCompleted.value) {
+    emit('lesson-completed', {
+      lesson: props.lesson,
+      completed: true,
+      completed_at: new Date().toISOString()
+    })
+  }
 }
 
-
-
-// Metodi rimossi - i controlli sono gestiti direttamente dal video Vimeo
-
+// Video element methods
 const onVideoLoaded = () => {
   if (videoElement.value) {
     totalDuration.value = videoElement.value.duration
@@ -489,43 +407,31 @@ const onVideoLoaded = () => {
 }
 
 const onTimeUpdate = () => {
-  // Non aggiorniamo più il progresso
+  if (videoElement.value) {
+    watchedTime.value = videoElement.value.currentTime
+    lastPosition.value = videoElement.value.currentTime
+    
+    // Check if video is completed
+    if (videoElement.value.currentTime >= videoElement.value.duration * completionThreshold.value) {
+      isCompleted.value = true
+      saveProgress()
+    }
+  }
 }
 
 const onVideoEnded = () => {
-  // Non facciamo più nulla
+  watchedTime.value = totalDuration.value
+  isCompleted.value = true
+  saveProgress()
 }
 
 const onVideoPause = () => {
-  // Non salviamo più il progresso
+  saveProgress()
 }
 
 const onVideoPlay = () => {
-  // Hide progress overlay when video starts playing
-  showProgressOverlay.value = false
+  hideInstructions()
 }
-
-
-
-// La funzione markAsCompleted è stata rimossa - il completamento avviene automaticamente
-
-const proceedToNext = () => {
-  // Check if user can proceed
-  if (props.blockProgression && !isCompleted.value && !canProceed.value) {
-    showProgressOverlay.value = true
-    return
-  }
-  
-  if (props.isLastLesson) {
-    // Se è l'ultima lezione, emetti evento di completamento corso
-    emit('course-completed')
-  } else {
-    // Altrimenti emetti evento di completamento lezione
-    emit('lesson-completed', props.lesson)
-  }
-}
-
-// Watchers rimossi - non aggiorniamo più il progresso
 
 // Lifecycle
 onMounted(() => {
@@ -533,11 +439,9 @@ onMounted(() => {
   if (videoProvider.value === 'upload' && videoElement.value) {
     onVideoLoaded()
   } else if (videoProvider.value === 'vimeo') {
-  // Inizializza il player Vimeo quando il componente è montato
-  setTimeout(() => {
-    onPlayerLoad()
-  }, 100)
-  
+    setTimeout(() => {
+      onPlayerLoad()
+    }, 100)
   }
 })
 
@@ -551,7 +455,7 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
-.video-player-container {
+.video-lesson {
   @apply w-full;
 }
 
@@ -574,12 +478,7 @@ video::-webkit-media-controls-panel {
 }
 
 /* Hide Vimeo progress bar and disable seeking */
-.video-player-container iframe {
+.video-lesson iframe {
   pointer-events: auto;
-}
-
-/* Custom Vimeo player styling to disable seeking */
-.video-player-container iframe[src*="vimeo"] {
-  /* This will be handled by Vimeo API parameters */
 }
 </style>
