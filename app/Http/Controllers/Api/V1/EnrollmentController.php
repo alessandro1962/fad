@@ -21,16 +21,10 @@ class EnrollmentController extends Controller
         $enrollments = $user->enrollments()
             ->with(['course.modules', 'course.enrollments'])
             ->orderBy('created_at', 'desc')
-            ->paginate(12);
+            ->get();
 
         return response()->json([
-            'data' => $enrollments->items(),
-            'meta' => [
-                'current_page' => $enrollments->currentPage(),
-                'last_page' => $enrollments->lastPage(),
-                'per_page' => $enrollments->perPage(),
-                'total' => $enrollments->total(),
-            ],
+            'data' => $enrollments,
         ]);
     }
 
