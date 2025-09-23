@@ -60,9 +60,6 @@
                 <div class="bg-white rounded-2xl shadow-sm border border-cdf-slate200 p-6">
                     <div class="flex items-center justify-between mb-6">
                         <h2 class="text-xl font-bold text-cdf-deep">I Miei Corsi</h2>
-                        <router-link to="/i-miei-corsi" class="text-cdf-teal hover:text-cdf-deep font-medium text-sm">
-                            Vedi tutti →
-                        </router-link>
                     </div>
                     
                     <!-- Loading State -->
