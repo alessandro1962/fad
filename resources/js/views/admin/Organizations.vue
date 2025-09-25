@@ -236,7 +236,6 @@ const pagination = ref({
 const loadOrganizations = async (page = 1) => {
   try {
     loading.value = true
-    console.log('Loading organizations...')
     const params = {
       page,
       per_page: pagination.value.per_page,
@@ -244,13 +243,10 @@ const loadOrganizations = async (page = 1) => {
     }
     
     const response = await api.get('/v1/admin/organizations', { params })
-    console.log('Organizations response:', response.data)
     organizations.value = response.data.data
     pagination.value = response.data.pagination
-    console.log('Organizations loaded:', organizations.value.length)
   } catch (error) {
     console.error('Error loading organizations:', error)
-    alert('Errore nel caricamento delle organizzazioni: ' + error.message)
   } finally {
     loading.value = false
   }

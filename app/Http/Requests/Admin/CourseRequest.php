@@ -36,6 +36,7 @@ class CourseRequest extends FormRequest
             'video_preview_url' => ['nullable', 'url', 'max:255'],
             'is_active' => ['boolean'],
             'published_at' => ['nullable', 'date'],
+            'add_to_full_vision' => ['boolean'],
         ];
     }
 

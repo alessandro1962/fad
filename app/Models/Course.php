@@ -31,6 +31,7 @@ class Course extends Model
         'stock_status',
         'manage_stock',
         'stock_quantity',
+        'add_to_full_vision',
     ];
 
     protected $casts = [
@@ -44,6 +45,7 @@ class Course extends Model
         'sale_price_cents' => 'integer',
         'duration_minutes' => 'integer',
         'stock_quantity' => 'integer',
+        'add_to_full_vision' => 'boolean',
     ];
 
     /**

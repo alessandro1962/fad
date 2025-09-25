@@ -271,6 +271,8 @@ class EnrollmentController extends Controller
             ->where('id', '!=', 11) // Exclude Full Vision course
             ->get();
 
+        $enrolledCourses = collect();
+
         foreach ($allCourses as $course) {
             // Check if user is already enrolled in this course
             $existingEnrollment = Enrollment::where('user_id', $user->id)
@@ -288,17 +290,13 @@ class EnrollmentController extends Controller
                     'expires_at' => $validated['expiry_date'] ?? null,
                 ]);
 
-                // Send notification for each course if requested
-                if ($validated['send_notification'] ?? true) {
-                    $enrollment = Enrollment::where('user_id', $user->id)
-                        ->where('course_id', $course->id)
-                        ->first();
-                    
-                    if ($enrollment) {
-                        $user->notify(new CourseEnrollmentNotification($course, $enrollment));
-                    }
-                }
+                $enrolledCourses->push($course);
             }
+        }
+
+        // Send single Full Vision notification if requested and courses were enrolled
+        if (($validated['send_notification'] ?? true) && $enrolledCourses->isNotEmpty()) {
+            $user->notify(new \App\Notifications\FullVisionAssignedNotification($enrolledCourses->all()));
         }
     }
 }

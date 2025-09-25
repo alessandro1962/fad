@@ -197,6 +197,24 @@
           </div>
         </div>
 
+        <!-- Full Vision Assignment -->
+        <div class="bg-cdf-sand p-4 rounded-lg border border-cdf-slate200">
+          <div class="flex items-center">
+            <input
+              v-model="form.add_to_full_vision"
+              type="checkbox"
+              id="add_to_full_vision"
+              class="h-4 w-4 text-cdf-teal focus:ring-cdf-teal border-cdf-slate200 rounded"
+            />
+            <label for="add_to_full_vision" class="ml-2 text-sm text-cdf-deep">
+              <span class="font-medium">Aggiungi agli utenti Full Vision</span>
+            </label>
+          </div>
+          <p class="text-xs text-cdf-slate600 mt-2 ml-6">
+            Se selezionato, questo corso verrà automaticamente assegnato a tutti gli utenti che hanno accesso Full Vision
+          </p>
+        </div>
+
         <!-- Actions -->
         <div class="flex items-center justify-end gap-3 pt-6 border-t border-cdf-slate200">
           <button
@@ -259,7 +277,8 @@ const form = reactive({
   tags: [],
   video_preview_url: '',
   is_active: true,
-  published_at: false
+  published_at: false,
+  add_to_full_vision: true // Default to true for new courses
 })
 
 const tagsInput = ref('')
@@ -311,7 +330,8 @@ const saveCourse = async () => {
       tags: form.tags,
       video_preview_url: form.video_preview_url,
       is_active: form.is_active,
-      published_at: form.published_at ? new Date().toISOString() : null
+      published_at: form.published_at ? new Date().toISOString() : null,
+      add_to_full_vision: form.add_to_full_vision
     }
 
     const response = props.isEdit

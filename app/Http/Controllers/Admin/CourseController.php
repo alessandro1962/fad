@@ -103,6 +103,11 @@ class CourseController extends Controller
 
         $course = Course::create($data);
 
+        // If add_to_full_vision is true, enroll all Full Vision users
+        if ($data['add_to_full_vision'] ?? false) {
+            $this->enrollFullVisionUsers($course);
+        }
+
         return response()->json([
             'message' => 'Corso creato con successo',
             'data' => $course->load(['modules', 'enrollments'])
@@ -234,5 +239,35 @@ class CourseController extends Controller
         return response()->json([
             'data' => $stats
         ]);
+    }
+
+    /**
+     * Enroll all Full Vision users to a course
+     */
+    private function enrollFullVisionUsers(Course $course): void
+    {
+        // Get all users who have Full Vision access (enrolled in Full Vision course)
+        $fullVisionUsers = \App\Models\User::whereHas('enrollments', function ($query) {
+            $query->where('course_id', 11) // Full Vision course ID
+                  ->where('status', 'active');
+        })->get();
+
+        foreach ($fullVisionUsers as $user) {
+            // Check if user is already enrolled in this course
+            $existingEnrollment = \App\Models\Enrollment::where('user_id', $user->id)
+                ->where('course_id', $course->id)
+                ->first();
+
+            if (!$existingEnrollment) {
+                // Create enrollment for this course
+                \App\Models\Enrollment::create([
+                    'user_id' => $user->id,
+                    'course_id' => $course->id,
+                    'source' => 'full_vision',
+                    'status' => 'active',
+                    'started_at' => now(),
+                ]);
+            }
+        }
     }
 }

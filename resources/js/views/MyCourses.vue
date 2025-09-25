@@ -228,13 +228,13 @@ const getEnrollmentStatus = (enrollment) => {
 };
 
 const filteredCourses = computed(() => {
-    if (activeFilter.value === 'all') return courses;
-    return courses.filter(course => course.status === activeFilter.value);
+    if (activeFilter.value === 'all') return courses.value;
+    return courses.value.filter(course => course.status === activeFilter.value);
 });
 
 const getFilterCount = (filterKey) => {
-    if (filterKey === 'all') return courses.length;
-    return courses.filter(course => course.status === filterKey).length;
+    if (filterKey === 'all') return courses.value.length;
+    return courses.value.filter(course => course.status === filterKey).length;
 };
 
 const getStatusBadgeClass = (status) => {
