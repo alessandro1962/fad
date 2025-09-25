@@ -20,6 +20,18 @@ const routes = [
         meta: { guest: true }
     },
     {
+        path: '/forgot-password',
+        name: 'forgot-password',
+        component: () => import('@/views/auth/ForgotPassword.vue'),
+        meta: { guest: true }
+    },
+    {
+        path: '/password-reset/:token',
+        name: 'reset-password',
+        component: () => import('@/views/auth/ResetPassword.vue'),
+        meta: { guest: true }
+    },
+    {
         path: '/dashboard',
         name: 'dashboard',
         component: () => import('@/views/Dashboard.vue'),

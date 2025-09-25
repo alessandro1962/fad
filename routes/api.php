@@ -20,6 +20,8 @@ Route::prefix('v1')->group(function () {
     // Public routes
     Route::post('/auth/register', [AuthController::class, 'register']);
     Route::post('/auth/login', [AuthController::class, 'login']);
+    Route::post('/auth/forgot-password', [AuthController::class, 'forgotPassword']);
+    Route::post('/auth/reset-password', [AuthController::class, 'resetPassword']);
     
     // Course routes
     Route::get('/courses', [CourseController::class, 'index']);
@@ -116,6 +118,10 @@ Route::prefix('v1')->group(function () {
             
             // Dashboard statistics
             Route::get('dashboard/statistics', [App\Http\Controllers\Admin\DashboardController::class, 'statistics']);
+            
+            // Import users for OAuth
+            Route::post('import/google-users', [App\Http\Controllers\Admin\ImportUsersController::class, 'importGoogleUsers']);
+            Route::get('import/google-users/template', [App\Http\Controllers\Admin\ImportUsersController::class, 'getTemplate']);
             
             // User management
             Route::get('users/statistics', [App\Http\Controllers\Admin\UserController::class, 'statistics']);

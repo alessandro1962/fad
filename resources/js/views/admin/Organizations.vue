@@ -3,9 +3,21 @@
     <div class="space-y-8">
       <!-- Header -->
       <div class="flex items-center justify-between">
-        <div>
-          <h1 class="text-3xl font-bold text-cdf-deep">Gestione Aziende</h1>
-          <p class="text-cdf-slate600 mt-2">Gestisci le aziende e i loro dipendenti</p>
+        <div class="flex items-center gap-4">
+          <button
+            @click="goToDashboard"
+            class="flex items-center gap-2 px-3 py-2 text-cdf-slate600 hover:text-cdf-deep hover:bg-cdf-slate100 rounded-lg transition-colors"
+            title="Torna alla Dashboard"
+          >
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+            </svg>
+            Dashboard
+          </button>
+          <div>
+            <h1 class="text-3xl font-bold text-cdf-deep">Gestione Aziende</h1>
+            <p class="text-cdf-slate600 mt-2">Gestisci le aziende e i loro dipendenti</p>
+          </div>
         </div>
         <button
           @click="showCreateModal = true"
@@ -212,6 +224,10 @@ import OrganizationDetailsModal from '@/components/Admin/OrganizationDetailsModa
 import api from '@/api'
 
 const router = useRouter()
+
+const goToDashboard = () => {
+  router.push('/admin')
+}
 
 const loading = ref(false)
 const organizations = ref([])

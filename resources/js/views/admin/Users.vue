@@ -28,6 +28,12 @@
               📥 Template CSV
             </button>
             <button
+              @click="showGoogleImportModal = true"
+              class="bg-blue-600 text-white px-4 py-2 rounded-xl font-semibold hover:bg-blue-700 transition-all"
+            >
+              🔐 Importa Google OAuth
+            </button>
+            <button
               @click="showImportModal = true"
               class="bg-cdf-teal text-white px-4 py-2 rounded-xl font-semibold hover:bg-cdf-deep transition-all"
             >
@@ -506,6 +512,130 @@
       </div>
     </div>
 
+    <!-- Google OAuth Import Modal -->
+    <div v-if="showGoogleImportModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+      <div class="bg-white rounded-xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+        <!-- Header -->
+        <div class="flex items-center justify-between p-6 border-b border-cdf-slate200">
+          <div>
+            <h2 class="text-xl font-bold text-cdf-deep">Importa Utenti Google OAuth</h2>
+            <p class="text-sm text-cdf-slate600 mt-1">Importa utenti che accederanno con Google for Work</p>
+          </div>
+          <button
+            @click="showGoogleImportModal = false"
+            class="p-2 text-cdf-slate400 hover:text-cdf-slate600 hover:bg-cdf-slate200 rounded-lg transition-all"
+          >
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+            </svg>
+          </button>
+        </div>
+
+        <!-- Content -->
+        <div class="p-6 space-y-6">
+          <!-- Instructions -->
+          <div class="bg-blue-50 p-4 rounded-lg border border-blue-200">
+            <h3 class="font-semibold text-blue-900 mb-2">Come funziona:</h3>
+            <ol class="text-sm text-blue-800 space-y-1">
+              <li>1. L'azienda ti invia un CSV con nome, cognome, email Google</li>
+              <li>2. Importi il CSV qui sotto</li>
+              <li>3. Gli utenti potranno accedere cliccando "Entra con Google"</li>
+              <li>4. Il sistema riconoscerà automaticamente l'email e farà il login</li>
+            </ol>
+          </div>
+
+          <!-- Organization Selection -->
+          <div>
+            <label class="block text-sm font-medium text-cdf-deep mb-2">
+              Assegna a Azienda (opzionale)
+            </label>
+            <select
+              v-model="googleImportForm.organization_id"
+              class="w-full px-3 py-2 border border-cdf-slate200 rounded-lg focus:ring-2 focus:ring-cdf-teal focus:border-transparent"
+            >
+              <option value="">Nessuna azienda</option>
+              <option
+                v-for="org in organizations"
+                :key="org.id"
+                :value="org.id"
+              >
+                {{ org.name }}
+              </option>
+            </select>
+          </div>
+
+          <!-- CSV Input -->
+          <div>
+            <label class="block text-sm font-medium text-cdf-deep mb-2">
+              Dati CSV
+            </label>
+            <textarea
+              v-model="googleImportForm.csv_data"
+              rows="8"
+              class="w-full px-3 py-2 border border-cdf-slate200 rounded-lg focus:ring-2 focus:ring-cdf-teal focus:border-transparent"
+              placeholder="Incolla qui i dati CSV nel formato: nome,cognome,email,azienda"
+            ></textarea>
+            <p class="text-xs text-cdf-slate600 mt-1">
+              Formato: nome, cognome, email (obbligatori), azienda (opzionale)
+            </p>
+          </div>
+
+          <!-- Template -->
+          <div>
+            <button
+              @click="loadGoogleTemplate"
+              class="text-sm text-cdf-teal hover:text-cdf-deep underline"
+            >
+              📋 Carica template di esempio
+            </button>
+          </div>
+
+          <!-- Results -->
+          <div v-if="googleImportResults" class="p-4 rounded-lg" :class="googleImportResults.success ? 'bg-green-50 border border-green-200' : 'bg-red-50 border border-red-200'">
+            <h4 class="font-semibold mb-2" :class="googleImportResults.success ? 'text-green-900' : 'text-red-900'">
+              {{ googleImportResults.success ? 'Import completato!' : 'Errore durante l\'import' }}
+            </h4>
+            <div v-if="googleImportResults.success" class="text-sm text-green-800">
+              <p>✅ Importati: {{ googleImportResults.data.imported }}</p>
+              <p>⚠️ Saltati: {{ googleImportResults.data.skipped }}</p>
+              <div v-if="googleImportResults.data.errors.length > 0" class="mt-2">
+                <p class="font-medium">Errori:</p>
+                <ul class="list-disc list-inside space-y-1">
+                  <li v-for="error in googleImportResults.data.errors" :key="error">{{ error }}</li>
+                </ul>
+              </div>
+            </div>
+            <div v-else class="text-sm text-red-800">
+              <p>{{ googleImportResults.error }}</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Actions -->
+        <div class="flex justify-end gap-3 p-6 border-t border-cdf-slate200">
+          <button
+            @click="showGoogleImportModal = false"
+            class="px-4 py-2 text-cdf-slate600 border border-cdf-slate200 rounded-lg hover:bg-cdf-slate50 transition-colors"
+          >
+            Annulla
+          </button>
+          <button
+            @click="importGoogleUsers"
+            :disabled="!googleImportForm.csv_data || googleImporting"
+            class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <span v-if="googleImporting" class="flex items-center">
+              <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+              Importazione...
+            </span>
+            <span v-else>Importa Utenti Google</span>
+          </button>
+        </div>
+      </div>
+    </div>
 
     <!-- Create User Modal -->
     <CreateUserModal
@@ -547,6 +677,7 @@ const router = useRouter()
 const users = ref([])
 const loading = ref(false)
 const statistics = ref({})
+const organizations = ref([])
 const showUserModal = ref(false)
 const selectedUser = ref(null)
 const isEdit = ref(false)
@@ -561,6 +692,13 @@ const enrolling = ref(false)
 const showCreateModal = ref(false)
 const showEnrollModal = ref(false)
 const showUserEnrollmentsModal = ref(false)
+const showGoogleImportModal = ref(false)
+const googleImporting = ref(false)
+const googleImportResults = ref(null)
+const googleImportForm = reactive({
+  csv_data: '',
+  organization_id: ''
+})
 const enrollmentForm = reactive({
   course_id: null,
   source: 'assign',
@@ -759,6 +897,48 @@ const importCsv = async () => {
   }
 }
 
+const loadGoogleTemplate = async () => {
+  try {
+    const response = await api.get('/v1/admin/import/google-users/template')
+    googleImportForm.csv_data = response.data.template
+  } catch (error) {
+    console.error('Errore nel caricamento del template:', error)
+    alert('Errore nel caricamento del template')
+  }
+}
+
+const importGoogleUsers = async () => {
+  if (!googleImportForm.csv_data) return
+  
+  try {
+    googleImporting.value = true
+    googleImportResults.value = null
+    
+    const response = await api.post('/v1/admin/import/google-users', {
+      csv_data: googleImportForm.csv_data,
+      organization_id: googleImportForm.organization_id || null
+    })
+    
+    googleImportResults.value = {
+      success: true,
+      data: response.data.data
+    }
+    
+    // Reload users and statistics
+    await loadUsers(pagination.value.current_page)
+    await loadStatistics()
+    
+  } catch (error) {
+    console.error('Errore nell\'import Google OAuth:', error)
+    googleImportResults.value = {
+      success: false,
+      error: error.response?.data?.message || 'Errore durante l\'import'
+    }
+  } finally {
+    googleImporting.value = false
+  }
+}
+
 const formatFileSize = (bytes) => {
   if (bytes === 0) return '0 Bytes'
   const k = 1024
@@ -826,8 +1006,18 @@ function debounce(func, wait) {
 }
 
 // Lifecycle
+const loadOrganizations = async () => {
+  try {
+    const response = await api.get('/v1/admin/organizations')
+    organizations.value = response.data.data
+  } catch (error) {
+    console.error('Errore nel caricamento delle organizzazioni:', error)
+  }
+}
+
 onMounted(() => {
   loadUsers()
   loadStatistics()
+  loadOrganizations()
 })
 </script>

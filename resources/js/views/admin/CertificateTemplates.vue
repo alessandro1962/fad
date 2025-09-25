@@ -4,9 +4,21 @@
     <div class="bg-white shadow-sm border-b border-cdf-slate200">
       <div class="max-w-7xl mx-auto px-6 py-4">
         <div class="flex items-center justify-between">
-          <div>
-            <h1 class="text-2xl font-bold text-cdf-deep">Template Certificati</h1>
-            <p class="text-cdf-slate700 mt-1">Gestisci i template per la generazione dei certificati</p>
+          <div class="flex items-center gap-4">
+            <button
+              @click="goToDashboard"
+              class="flex items-center gap-2 px-3 py-2 text-cdf-slate600 hover:text-cdf-deep hover:bg-cdf-slate100 rounded-lg transition-colors"
+              title="Torna alla Dashboard"
+            >
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+              </svg>
+              Dashboard
+            </button>
+            <div>
+              <h1 class="text-2xl font-bold text-cdf-deep">Template Certificati</h1>
+              <p class="text-cdf-slate700 mt-1">Gestisci i template per la generazione dei certificati</p>
+            </div>
           </div>
           <button
             @click="openCreateEditor"
@@ -201,6 +213,10 @@ import CertificateTemplateModal from '@/components/Admin/CertificateTemplateModa
 import SimpleCertificateEditor from '@/components/Admin/SimpleCertificateEditor.vue'
 
 const router = useRouter()
+
+const goToDashboard = () => {
+  router.push('/admin')
+}
 
 // State
 const templates = ref([])

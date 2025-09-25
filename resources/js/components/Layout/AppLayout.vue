@@ -244,6 +244,7 @@ const router = useRouter();
 const authStore = useAuthStore();
 const showUserMenu = ref(false);
 
+
 const handleLogout = async () => {
     await authStore.logout();
     showUserMenu.value = false;
