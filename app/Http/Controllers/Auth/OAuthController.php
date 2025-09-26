@@ -48,11 +48,14 @@ class OAuthController extends Controller
                     'last_login_at' => now(),
                 ]);
                 
-                // Login the user with session
-                Auth::login($user);
+                // Generate Sanctum token
+                $token = $user->createToken('oauth-token')->plainTextToken;
                 
-                // Redirect based on user role
-                return $this->redirectAfterLogin($user);
+                // Redirect to dashboard with token parameter
+                $redirectUrl = $user->is_admin ? '/admin' : '/dashboard';
+                $redirectUrl .= '?token=' . $token;
+                
+                return redirect($redirectUrl);
             } else {
                 // User doesn't exist - show error
                 return redirect('/login')->with('error', 'Account non trovato. Contatta il tuo amministratore per essere aggiunto alla piattaforma.');
@@ -97,11 +100,14 @@ class OAuthController extends Controller
                     'last_login_at' => now(),
                 ]);
                 
-                // Login the user with session
-                Auth::login($user);
+                // Generate Sanctum token
+                $token = $user->createToken('oauth-token')->plainTextToken;
                 
-                // Redirect based on user role
-                return $this->redirectAfterLogin($user);
+                // Redirect to dashboard with token parameter
+                $redirectUrl = $user->is_admin ? '/admin' : '/dashboard';
+                $redirectUrl .= '?token=' . $token;
+                
+                return redirect($redirectUrl);
             } else {
                 // User doesn't exist - show error
                 return redirect('/login')->with('error', 'Account non trovato. Contatta il tuo amministratore per essere aggiunto alla piattaforma.');
@@ -125,6 +131,73 @@ class OAuthController extends Controller
             return redirect('/admin');
         } else {
             return redirect('/dashboard');
+        }
+    }
+
+    /**
+     * Debug endpoint for testing Google OAuth with Postman
+     */
+    public function debugGoogleCallback()
+    {
+        try {
+            $googleUser = Socialite::driver('google')->user();
+            
+            // Check if user exists in our database by email
+            $user = User::where('email', $googleUser->getEmail())->first();
+            
+            if ($user) {
+                // User exists - update provider info to Google
+                $user->update([
+                    'provider' => 'google',
+                    'provider_id' => $googleUser->getId(),
+                    'email_verified_at' => now(),
+                    'last_login_at' => now(),
+                ]);
+                
+                // Generate Sanctum token
+                $token = $user->createToken('oauth-token')->plainTextToken;
+                
+                // Return JSON response for Postman testing
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Google OAuth successful',
+                    'user' => [
+                        'id' => $user->id,
+                        'name' => $user->name,
+                        'email' => $user->email,
+                        'is_admin' => $user->is_admin,
+                        'provider' => $user->provider,
+                        'provider_id' => $user->provider_id,
+                    ],
+                    'token' => $token,
+                    'google_user' => [
+                        'id' => $googleUser->getId(),
+                        'name' => $googleUser->getName(),
+                        'email' => $googleUser->getEmail(),
+                        'avatar' => $googleUser->getAvatar(),
+                    ]
+                ]);
+            } else {
+                // User doesn't exist
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Account non trovato. Contatta il tuo amministratore per essere aggiunto alla piattaforma.',
+                    'google_user' => [
+                        'id' => $googleUser->getId(),
+                        'name' => $googleUser->getName(),
+                        'email' => $googleUser->getEmail(),
+                        'avatar' => $googleUser->getAvatar(),
+                    ]
+                ], 404);
+            }
+            
+        } catch (\Exception $e) {
+            \Log::error('Debug Google OAuth Error: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Errore durante l\'autenticazione con Google: ' . $e->getMessage(),
+                'error' => $e->getMessage()
+            ], 500);
         }
     }
 }
