@@ -75,21 +75,37 @@ export const useAuthStore = defineStore('auth', {
             }
         },
 
-        async fetchUser() {
-            if (!this.token) return;
-            
-            try {
-                axios.defaults.headers.common['Authorization'] = `Bearer ${this.token}`;
-                const response = await axios.get('/api/v1/auth/me');
-                this.user = response.data.data;
-            } catch (error) {
-                console.error('Fetch user error:', error);
-                this.logout();
-            }
+        setToken(token) {
+            console.log('Setting token:', token);
+            this.token = token;
+            localStorage.setItem('token', token);
+            axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+            return this.fetchUser();
         },
 
+async fetchUser() {
+    if (!this.token) {
+        console.log('No token available');
+        return;
+    }
+    
+    try {
+        console.log('Fetching user with token:', this.token);
+        axios.defaults.headers.common['Authorization'] = `Bearer ${this.token}`;
+        const response = await axios.get('/api/v1/auth/me');
+        this.user = response.data.data;
+        console.log('User fetched successfully:', this.user);
+        console.log('User ID:', this.user.id);
+        console.log('User email:', this.user.email);
+    } catch (error) {
+        console.error('Fetch user error:', error);
+        console.error('Error response:', error.response);
+        // Don't logout automatically, just log the error
+        // this.logout();
+    }
+},
         async socialLogin(provider) {
-            window.location.href = `/api/v1/auth/social/${provider}`;
+            window.location.href = `/auth/${provider}`;
         },
     },
 });

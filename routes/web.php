@@ -16,6 +16,11 @@ Route::get('/auth/microsoft', [App\Http\Controllers\Auth\OAuthController::class,
 Route::get('/auth/microsoft/callback', [App\Http\Controllers\Auth\OAuthController::class, 'handleMicrosoftCallback'])
     ->name('auth.microsoft.callback');
 
+// Debug OAuth routes (devono essere PRIMA del catch-all)
+Route::get('/api/debug/google/callback', function() {
+    return response()->json(['message' => 'Debug route working']);
+});
+
 // Protected routes that require authentication
 Route::get('/dashboard', function () {
     if (!Auth::check()) {

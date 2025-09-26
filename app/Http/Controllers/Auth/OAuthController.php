@@ -31,39 +31,53 @@ class OAuthController extends Controller
     /**
      * Handle Google OAuth callback
      */
-    public function handleGoogleCallback()
-    {
-        try {
-            $googleUser = Socialite::driver('google')->user();
+	public function handleGoogleCallback()
+	{
+	    try {
+	        $googleUser = Socialite::driver('google')->user();
+	        
+	        // Log Google user data
+	        \Log::info('Google user data: ' . json_encode([
+	            'id' => $googleUser->getId(),
+	            'name' => $googleUser->getName(),
+	            'email' => $googleUser->getEmail(),
+	        ]));
+	        
+	        // Check if user exists in our database by email
+	        $user = User::where('email', $googleUser->getEmail())->first();
+	        
+	        // Log database query result
+	        \Log::info('Database query result: ' . ($user ? json_encode($user->toArray()) : 'User not found'));
+	        
+	        if ($user) {
+	            // User exists - update provider info to Google
+	            $user->update([
+	                'provider' => 'google',
+	                'provider_id' => $googleUser->getId(),
+                	'email_verified_at' => now(),
+		        'last_login_at' => now(),
+		    ]);
             
-            // Check if user exists in our database by email
-            $user = User::where('email', $googleUser->getEmail())->first();
-            
-            if ($user) {
-                // User exists - update provider info to Google
-                $user->update([
-                    'provider' => 'google',
-                    'provider_id' => $googleUser->getId(),
-                    'email_verified_at' => now(),
-                    'last_login_at' => now(),
-                ]);
-                
-                // Login the user with session
-                Auth::login($user);
-                
-                // Redirect based on user role
-                return $this->redirectAfterLogin($user);
-            } else {
-                // User doesn't exist - show error
-                return redirect('/login')->with('error', 'Account non trovato. Contatta il tuo amministratore per essere aggiunto alla piattaforma.');
-            }
-            
-        } catch (\Exception $e) {
-            \Log::error('Google OAuth Error: ' . $e->getMessage());
-            return redirect('/login')->with('error', 'Errore durante l\'autenticazione con Google. Riprova.');
-        }
-    }
-
+	            // Generate Sanctum token
+        	    $token = $user->createToken('oauth-token')->plainTextToken;
+	            
+	            // Log the token for debugging
+	            \Log::info('Generated token for user: ' . $user->email . ' (ID: ' . $user->id . ') - Token: ' . $token);
+	            
+	            // Redirect to dashboard with token parameter
+	            $redirectUrl = $user->is_admin ? '/admin' : '/dashboard';
+	            $redirectUrl .= '?token=' . $token;
+	            
+	            return redirect($redirectUrl);
+	        } else {
+	            return redirect('/login')->with('error', 'Account non trovato. Contatta il tuo amministratore per essere aggiunto alla piattaforma.');
+	        }
+	        
+	    } catch (\Exception $e) {
+	        \Log::error('Google OAuth Error: ' . $e->getMessage());
+	        return redirect('/login')->with('error', 'Errore durante l\'autenticazione con Google. Riprova.');
+	    }
+	}
     /**
      * Redirect to Microsoft OAuth
      */
@@ -97,34 +111,21 @@ class OAuthController extends Controller
                     'last_login_at' => now(),
                 ]);
                 
-                // Login the user with session
-                Auth::login($user);
+                // Generate Sanctum token
+                $token = $user->createToken('oauth-token')->plainTextToken;
                 
-                // Redirect based on user role
-                return $this->redirectAfterLogin($user);
+                // Redirect to dashboard with token parameter
+                $redirectUrl = $user->is_admin ? '/admin' : '/dashboard';
+                $redirectUrl .= '?token=' . $token;
+                
+                return redirect($redirectUrl);
             } else {
-                // User doesn't exist - show error
                 return redirect('/login')->with('error', 'Account non trovato. Contatta il tuo amministratore per essere aggiunto alla piattaforma.');
             }
             
         } catch (\Exception $e) {
             \Log::error('Microsoft OAuth Error: ' . $e->getMessage());
             return redirect('/login')->with('error', 'Errore durante l\'autenticazione con Microsoft. Riprova.');
-        }
-    }
-
-    /**
-     * Redirect user after successful login
-     */
-    private function redirectAfterLogin(User $user)
-    {
-        // Log per debug
-        \Log::info('OAuth Login successful for user: ' . $user->email . ' (Admin: ' . ($user->is_admin ? 'Yes' : 'No') . ')');
-        
-        if ($user->is_admin) {
-            return redirect('/admin');
-        } else {
-            return redirect('/dashboard');
         }
     }
 }
