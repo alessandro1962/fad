@@ -34,10 +34,14 @@ class OAuthController extends Controller
     public function handleGoogleCallback()
     {
         try {
+            \Log::info('Google OAuth Callback started');
+            
             $googleUser = Socialite::driver('google')->user();
+            \Log::info('Google user retrieved: ' . $googleUser->getEmail());
             
             // Check if user exists in our database by email
             $user = User::where('email', $googleUser->getEmail())->first();
+            \Log::info('Database user lookup result: ' . ($user ? 'User found (ID: ' . $user->id . ')' : 'User not found'));
             
             if ($user) {
                 // User exists - update provider info to Google
@@ -47,22 +51,27 @@ class OAuthController extends Controller
                     'email_verified_at' => now(),
                     'last_login_at' => now(),
                 ]);
+                \Log::info('User updated with Google provider info');
                 
                 // Generate Sanctum token
                 $token = $user->createToken('oauth-token')->plainTextToken;
+                \Log::info('Sanctum token generated for user: ' . $user->email . ' (ID: ' . $user->id . ')');
                 
                 // Redirect to dashboard with token parameter
                 $redirectUrl = $user->is_admin ? '/admin' : '/dashboard';
                 $redirectUrl .= '?token=' . $token;
+                \Log::info('Redirecting to: ' . $redirectUrl);
                 
                 return redirect($redirectUrl);
             } else {
                 // User doesn't exist - show error
+                \Log::warning('User not found in database: ' . $googleUser->getEmail());
                 return redirect('/login')->with('error', 'Account non trovato. Contatta il tuo amministratore per essere aggiunto alla piattaforma.');
             }
             
         } catch (\Exception $e) {
             \Log::error('Google OAuth Error: ' . $e->getMessage());
+            \Log::error('Google OAuth Error Stack: ' . $e->getTraceAsString());
             return redirect('/login')->with('error', 'Errore durante l\'autenticazione con Google. Riprova.');
         }
     }
