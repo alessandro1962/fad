@@ -62,7 +62,10 @@ class OAuthController extends Controller
                 $redirectUrl .= '?token=' . $token;
                 \Log::info('Redirecting to: ' . $redirectUrl);
                 
-                return redirect($redirectUrl);
+                // Force page reload to ensure Vue.js reinitializes
+                return redirect($redirectUrl)->header('Cache-Control', 'no-cache, no-store, must-revalidate')
+                                           ->header('Pragma', 'no-cache')
+                                           ->header('Expires', '0');
             } else {
                 // User doesn't exist - show error
                 \Log::warning('User not found in database: ' . $googleUser->getEmail());
