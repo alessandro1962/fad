@@ -16,9 +16,16 @@ Route::get('/auth/microsoft', [App\Http\Controllers\Auth\OAuthController::class,
 Route::get('/auth/microsoft/callback', [App\Http\Controllers\Auth\OAuthController::class, 'handleMicrosoftCallback'])
     ->name('auth.microsoft.callback');
 
+<<<<<<< HEAD
 // Debug endpoint for testing Google OAuth with Postman
 Route::get('/debug/google/callback', [App\Http\Controllers\Auth\OAuthController::class, 'debugGoogleCallback'])
     ->name('debug.google.callback');
+=======
+// Debug OAuth routes (devono essere PRIMA del catch-all)
+Route::get('/api/debug/google/callback', function() {
+    return response()->json(['message' => 'Debug route working']);
+});
+>>>>>>> 41f5fbec19d3ca9692f7e36f059442ab2cd3a866
 
 // Protected routes that require authentication
 Route::get('/dashboard', function () {

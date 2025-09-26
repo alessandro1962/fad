@@ -1,0 +1,615 @@
+<template>
+  <div class="quiz-player-container">
+    <!-- Loading State -->
+    <div v-if="!quizData.questions || quizData.questions.length === 0" class="bg-white rounded-2xl shadow-sm border border-cdf-slate200 p-6 text-center">
+      <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-cdf-teal mx-auto mb-4"></div>
+      <p class="text-cdf-slate700">Caricamento quiz...</p>
+    </div>
+    
+    <!-- Quiz Content -->
+    <div v-else>
+    <!-- Quiz Header -->
+    <div class="bg-white rounded-2xl shadow-sm border border-cdf-slate200 p-6 mb-6">
+      <div class="flex items-center justify-between mb-4">
+        <div>
+          <h2 class="text-2xl font-bold text-cdf-deep">{{ quizData.quiz_title }}</h2>
+          <p class="text-cdf-slate700 mt-1">{{ quizData.description || 'Completa il quiz per continuare' }}</p>
+        </div>
+        <div class="text-right">
+          <div class="text-sm text-cdf-slate600">
+            <span v-if="timeLimit > 0" class="block">
+              Tempo rimanente: 
+              <span class="font-semibold" :class="timeRemaining <= 60 ? 'text-red-600' : 'text-cdf-deep'">
+                {{ formatTime(timeRemaining) }}
+              </span>
+            </span>
+            <span class="block mt-1">
+              Punteggio minimo: <span class="font-semibold text-cdf-deep">{{ quizData.passing_score }}%</span>
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Progress Bar -->
+      <div class="w-full bg-cdf-slate200 rounded-full h-2">
+        <div 
+          class="bg-gradient-to-r from-cdf-teal to-cdf-deep h-2 rounded-full transition-all duration-500"
+          :style="{ width: `${quizProgress}%` }"
+        ></div>
+      </div>
+      <p class="text-sm text-cdf-slate600 mt-2">
+        Domanda {{ currentQuestionIndex + 1 }} di {{ quizData.questions?.length || 0 }}
+      </p>
+    </div>
+
+    <!-- Quiz Content -->
+    <div v-if="!quizCompleted" class="space-y-6">
+      <!-- Current Question -->
+      <div class="bg-white rounded-2xl shadow-sm border border-cdf-slate200 p-6">
+        <div class="mb-6">
+          <h3 class="text-xl font-bold text-cdf-deep mb-4">
+            {{ currentQuestion.text }}
+          </h3>
+          
+          <!-- Question Type: Single Choice -->
+          <div v-if="currentQuestion.type === 'single_choice'" class="space-y-3">
+            <label
+              v-for="(option, index) in currentQuestion.options"
+              :key="index"
+              class="flex items-center p-4 border border-cdf-slate200 rounded-xl hover:border-cdf-teal/50 hover:bg-cdf-teal/5 transition-all cursor-pointer"
+              :class="{ 'border-cdf-teal bg-cdf-teal/10': answers[currentQuestionIndex] === index }"
+            >
+              <input
+                type="radio"
+                :name="`question_${currentQuestionIndex}`"
+                :value="index"
+                v-model="answers[currentQuestionIndex]"
+                class="sr-only"
+              />
+              <div class="flex items-center w-full">
+                <div class="w-6 h-6 rounded-full border-2 mr-4 flex items-center justify-center"
+                     :class="answers[currentQuestionIndex] === index ? 'border-cdf-teal bg-cdf-teal' : 'border-cdf-slate300'">
+                  <div v-if="answers[currentQuestionIndex] === index" class="w-3 h-3 rounded-full bg-white"></div>
+                </div>
+                <span class="text-cdf-deep font-medium">{{ option }}</span>
+              </div>
+            </label>
+          </div>
+
+          <!-- Question Type: Multiple Choice -->
+          <div v-else-if="currentQuestion.type === 'multiple_choice'" class="space-y-3">
+            <label
+              v-for="(option, index) in currentQuestion.options"
+              :key="index"
+              class="flex items-center p-4 border border-cdf-slate200 rounded-xl hover:border-cdf-teal/50 hover:bg-cdf-teal/5 transition-all cursor-pointer"
+              :class="{ 'border-cdf-teal bg-cdf-teal/10': (answers[currentQuestionIndex] || []).includes(index) }"
+            >
+              <input
+                type="checkbox"
+                :value="index"
+                v-model="answers[currentQuestionIndex]"
+                class="sr-only"
+              />
+              <div class="flex items-center w-full">
+                <div class="w-6 h-6 rounded border-2 mr-4 flex items-center justify-center"
+                     :class="(answers[currentQuestionIndex] || []).includes(index) ? 'border-cdf-teal bg-cdf-teal' : 'border-cdf-slate300'">
+                  <svg v-if="(answers[currentQuestionIndex] || []).includes(index)" class="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+                  </svg>
+                </div>
+                <span class="text-cdf-deep font-medium">{{ option }}</span>
+              </div>
+            </label>
+          </div>
+
+          <!-- Question Type: True/False -->
+          <div v-else-if="currentQuestion.type === 'true_false'" class="space-y-3">
+            <label
+              v-for="(option, index) in ['Vero', 'Falso']"
+              :key="index"
+              class="flex items-center p-4 border border-cdf-slate200 rounded-xl hover:border-cdf-teal/50 hover:bg-cdf-teal/5 transition-all cursor-pointer"
+              :class="{ 'border-cdf-teal bg-cdf-teal/10': answers[currentQuestionIndex] === index }"
+            >
+              <input
+                type="radio"
+                :name="`question_${currentQuestionIndex}`"
+                :value="index"
+                v-model="answers[currentQuestionIndex]"
+                class="sr-only"
+              />
+              <div class="flex items-center w-full">
+                <div class="w-6 h-6 rounded-full border-2 mr-4 flex items-center justify-center"
+                     :class="answers[currentQuestionIndex] === index ? 'border-cdf-teal bg-cdf-teal' : 'border-cdf-slate300'">
+                  <div v-if="answers[currentQuestionIndex] === index" class="w-3 h-3 rounded-full bg-white"></div>
+                </div>
+                <span class="text-cdf-deep font-medium">{{ option }}</span>
+              </div>
+            </label>
+          </div>
+
+          <!-- Question Type: Text Input -->
+          <div v-else-if="currentQuestion.type === 'text_input'" class="space-y-3">
+            <textarea
+              v-model="answers[currentQuestionIndex]"
+              class="w-full p-4 border border-cdf-slate200 rounded-xl focus:ring-2 focus:ring-cdf-teal focus:border-transparent resize-none"
+              rows="4"
+              placeholder="Inserisci la tua risposta..."
+            ></textarea>
+          </div>
+
+          <!-- Question Type: Number Input -->
+          <div v-else-if="currentQuestion.type === 'number_input'" class="space-y-3">
+            <input
+              v-model.number="answers[currentQuestionIndex]"
+              type="number"
+              class="w-full p-4 border border-cdf-slate200 rounded-xl focus:ring-2 focus:ring-cdf-teal focus:border-transparent"
+              placeholder="Inserisci un numero..."
+            />
+          </div>
+        </div>
+
+        <!-- Navigation Buttons -->
+        <div class="flex justify-between">
+          <button
+            @click="previousQuestion"
+            :disabled="currentQuestionIndex === 0"
+            class="px-6 py-3 border border-cdf-slate200 text-cdf-slate700 rounded-xl font-semibold hover:bg-cdf-slate50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <svg class="w-5 h-5 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+            </svg>
+            Precedente
+          </button>
+
+          <button
+            v-if="currentQuestionIndex < (quizData.questions?.length || 0) - 1"
+            @click="nextQuestion"
+            :disabled="!hasAnswer"
+            class="px-6 py-3 bg-cdf-teal text-white rounded-xl font-semibold hover:bg-cdf-deep transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            Successiva
+            <svg class="w-5 h-5 inline ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+            </svg>
+          </button>
+
+          <button
+            v-else
+            @click="submitQuiz"
+            :disabled="!hasAnswer"
+            class="px-6 py-3 bg-cdf-amber text-cdf-ink rounded-xl font-semibold hover:brightness-95 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <svg class="w-5 h-5 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>
+            Completa Quiz
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Quiz Results -->
+    <div v-else class="space-y-6">
+      <!-- Results Summary -->
+      <div class="bg-white rounded-2xl shadow-sm border border-cdf-slate200 p-6">
+        <div class="text-center mb-6">
+          <div class="w-20 h-20 mx-auto mb-4 rounded-full flex items-center justify-center"
+               :class="quizPassed ? 'bg-green-100' : 'bg-red-100'">
+            <svg class="w-10 h-10" :class="quizPassed ? 'text-green-600' : 'text-red-600'" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path v-if="quizPassed" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+              <path v-else stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>
+          </div>
+          <h3 class="text-2xl font-bold mb-2" :class="quizPassed ? 'text-green-600' : 'text-red-600'">
+            {{ quizPassed ? 'Quiz Superato!' : 'Quiz Non Superato' }}
+          </h3>
+          <p class="text-cdf-slate700">
+            Hai ottenuto {{ finalScore }}% (minimo richiesto: {{ quizData.passing_score }}%)
+          </p>
+        </div>
+
+        <!-- Score Breakdown -->
+        <div class="grid md:grid-cols-3 gap-4 mb-6">
+          <div class="text-center p-4 bg-cdf-sand rounded-xl">
+            <div class="text-2xl font-bold text-cdf-deep">{{ correctAnswers }}</div>
+            <div class="text-sm text-cdf-slate700">Risposte Corrette</div>
+          </div>
+          <div class="text-center p-4 bg-cdf-sand rounded-xl">
+            <div class="text-2xl font-bold text-cdf-deep">{{ totalQuestions }}</div>
+            <div class="text-sm text-cdf-slate700">Domande Totali</div>
+          </div>
+          <div class="text-center p-4 bg-cdf-sand rounded-xl">
+            <div class="text-2xl font-bold text-cdf-deep">{{ attemptNumber }}</div>
+            <div class="text-sm text-cdf-slate700">Tentativo</div>
+          </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="flex gap-3">
+          <button
+            v-if="!quizPassed && canRetry"
+            @click="retryQuiz"
+            class="flex-1 bg-cdf-teal text-white px-6 py-3 rounded-xl font-semibold hover:bg-cdf-deep transition-colors"
+          >
+            Riprova Quiz
+          </button>
+          <button
+            v-else-if="quizPassed"
+            @click="proceedToNext"
+            class="flex-1 bg-cdf-amber text-cdf-ink px-6 py-3 rounded-xl font-semibold hover:brightness-95 transition-colors"
+          >
+            {{ isLastLesson ? 'Completa Corso' : 'Continua al Prossimo' }}
+          </button>
+          <button
+            v-if="quizPassed"
+            @click="reviewAnswers"
+            class="px-6 py-3 border border-cdf-slate200 text-cdf-slate700 rounded-xl font-semibold hover:bg-cdf-slate50 transition-colors"
+          >
+            Rivedi Risposte
+          </button>
+        </div>
+      </div>
+
+      <!-- Detailed Results -->
+      <div v-if="showDetailedResults && quizPassed" class="bg-white rounded-2xl shadow-sm border border-cdf-slate200 p-6">
+        <h4 class="text-lg font-bold text-cdf-deep mb-4">Dettaglio Risposte</h4>
+        <div class="space-y-4">
+          <div
+            v-for="(question, index) in (quizData.questions || [])"
+            :key="index"
+            class="p-4 border rounded-xl"
+            :class="isAnswerCorrect(index) ? 'border-green-200 bg-green-50' : 'border-red-200 bg-red-50'"
+          >
+            <div class="flex items-start justify-between mb-2">
+              <h5 class="font-semibold text-cdf-deep">{{ question.text }}</h5>
+              <div class="flex items-center">
+                <svg v-if="isAnswerCorrect(index)" class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                </svg>
+                <svg v-else class="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                </svg>
+              </div>
+            </div>
+            <div class="text-sm text-cdf-slate700">
+              <p><strong>La tua risposta:</strong> {{ formatUserAnswer(index) }}</p>
+              <p><strong>Risposta corretta:</strong> {{ formatCorrectAnswer(index) }}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    </div> <!-- Chiusura del div v-else -->
+  </div>
+</template>
+
+<script setup>
+import { ref, computed, onMounted, onUnmounted } from 'vue'
+import api from '@/api'
+
+const props = defineProps({
+  lesson: {
+    type: Object,
+    required: true
+  },
+  userAttempts: {
+    type: Array,
+    default: () => []
+  },
+  isLastLesson: {
+    type: Boolean,
+    default: false
+  }
+})
+
+const emit = defineEmits(['quiz-completed', 'next-lesson', 'course-completed'])
+
+// Refs
+const quizData = ref({})
+const answers = ref([])
+const currentQuestionIndex = ref(0)
+const quizCompleted = ref(false)
+const quizPassed = ref(false)
+const finalScore = ref(0)
+const correctAnswers = ref(0)
+const totalQuestions = ref(0)
+const attemptNumber = ref(1)
+const currentAttemptId = ref(null)
+const showDetailedResults = ref(false)
+const timeRemaining = ref(0)
+const timeLimit = ref(0)
+const timerInterval = ref(null)
+const quizAnswers = ref([])
+
+// Computed
+const currentQuestion = computed(() => {
+  return quizData.value.questions?.[currentQuestionIndex.value] || {}
+})
+
+const quizProgress = computed(() => {
+  return ((currentQuestionIndex.value + 1) / totalQuestions.value) * 100
+})
+
+const hasAnswer = computed(() => {
+  const answer = answers.value[currentQuestionIndex.value]
+  if (Array.isArray(answer)) {
+    return answer.length > 0
+  }
+  return answer !== null && answer !== undefined && answer !== ''
+})
+
+const canRetry = computed(() => {
+  // Permetti sempre di riprovare se il quiz non è superato
+  if (!quizPassed.value) {
+    return true
+  }
+  // Se superato, controlla i tentativi massimi
+  return attemptNumber.value < (quizData.value.max_attempts || 3)
+})
+
+// Methods
+const formatTime = (seconds) => {
+  const minutes = Math.floor(seconds / 60)
+  const secs = seconds % 60
+  return `${minutes}:${secs.toString().padStart(2, '0')}`
+}
+
+const startQuizAttempt = async () => {
+  try {
+    const response = await api.post(`/v1/quizzes/${quizData.value.id}/start`)
+    currentAttemptId.value = response.data.data.attempt_id
+    attemptNumber.value = response.data.data.attempt_number
+    console.log('Nuovo tentativo creato:', response.data.data)
+  } catch (error) {
+    console.error('Errore nell\'avvio del quiz:', error)
+    // If there's already a pending attempt, use it
+    if (error.response?.status === 409) {
+      console.log('Tentativo già esistente, uso quello:', error.response.data.data)
+      currentAttemptId.value = error.response.data.data.attempt_id
+      // Non aggiorniamo attemptNumber perché è già corretto
+    } else if (error.response?.status === 403) {
+      console.error('Accesso negato al quiz. Verifica di essere autenticato e iscritto al corso.')
+      throw error
+    } else {
+      throw error
+    }
+  }
+}
+
+const loadQuiz = async () => {
+  try {
+    console.log('=== LOAD QUIZ START ===')
+    console.log('Loading quiz for lesson:', props.lesson.id)
+    console.log('Lesson payload:', props.lesson.payload)
+    
+    // Load the quiz associated with this lesson
+    const response = await api.get(`/v1/lessons/${props.lesson.id}/quiz`)
+    console.log('Quiz API response:', response.data)
+    quizData.value = response.data.data || {}
+    totalQuestions.value = quizData.value.questions?.length || 0
+    timeLimit.value = (quizData.value.time_limit_minutes || 0) * 60 // Convert to seconds
+    timeRemaining.value = timeLimit.value
+    attemptNumber.value = props.userAttempts.length + 1
+    
+    console.log('Quiz data loaded:', quizData.value)
+    console.log('Total questions:', totalQuestions.value)
+    console.log('Time limit:', timeLimit.value)
+    
+    // Initialize answers array
+    answers.value = new Array(totalQuestions.value).fill(null)
+    
+    // Start a new quiz attempt
+    await startQuizAttempt()
+    
+    // Start timer if time limit is set
+    if (timeLimit.value > 0) {
+      startTimer()
+    }
+    
+    console.log('=== LOAD QUIZ COMPLETED ===')
+  } catch (error) {
+    console.error('=== LOAD QUIZ ERROR ===')
+    console.error('Errore nel caricamento del quiz:', error)
+    
+    // Show error message to user
+    if (error.response?.status === 403) {
+      console.error('Accesso negato al quiz. Verifica di essere autenticato e iscritto al corso.')
+    }
+    
+    // Fallback to lesson payload if API fails
+    console.log('Using fallback quiz data from lesson payload:', props.lesson.payload)
+    quizData.value = props.lesson.payload || {}
+    totalQuestions.value = quizData.value.questions?.length || 0
+    timeLimit.value = (quizData.value.time_limit || 0) * 60
+    timeRemaining.value = timeLimit.value
+    attemptNumber.value = props.userAttempts.length + 1
+    answers.value = new Array(totalQuestions.value).fill(null)
+    
+    console.log('Fallback quiz data:', quizData.value)
+    console.log('Fallback total questions:', totalQuestions.value)
+    
+    if (timeLimit.value > 0) {
+      startTimer()
+    }
+  }
+}
+
+const initializeQuiz = async () => {
+  console.log('=== QUIZ PLAYER INITIALIZE ===')
+  console.log('Initializing quiz for lesson:', props.lesson)
+  console.log('Lesson type:', props.lesson.type)
+  console.log('Lesson payload:', props.lesson.payload)
+  console.log('Is last lesson:', props.isLastLesson)
+  await loadQuiz()
+  console.log('Quiz data loaded:', quizData.value)
+  console.log('Total questions:', totalQuestions.value)
+}
+
+const startTimer = () => {
+  timerInterval.value = setInterval(() => {
+    timeRemaining.value--
+    if (timeRemaining.value <= 0) {
+      submitQuiz()
+    }
+  }, 1000)
+}
+
+const nextQuestion = () => {
+  if (currentQuestionIndex.value < totalQuestions.value - 1) {
+    currentQuestionIndex.value++
+  }
+}
+
+const previousQuestion = () => {
+  if (currentQuestionIndex.value > 0) {
+    currentQuestionIndex.value--
+  }
+}
+
+const submitQuiz = async () => {
+  try {
+    // Check if quiz data is loaded
+    if (!quizData.value.id) {
+      console.error('Quiz data not loaded. Cannot submit quiz.')
+      return
+    }
+
+    // Format answers for the API
+    const formattedAnswers = quizData.value.questions.map((question, index) => {
+      let answer = answers.value[index]
+      
+      // For single_choice, convert index to actual option text
+      if (question.type === 'single_choice' && typeof answer === 'number') {
+        answer = question.options[answer]
+      }
+      
+      return {
+        question_id: question.id,
+        answer: answer
+      }
+    })
+
+    const attemptData = {
+      attempt_id: currentAttemptId.value,
+      answers: formattedAnswers
+    }
+
+    const response = await api.post(`/v1/quizzes/${quizData.value.id}/submit`, attemptData)
+    const result = response.data.data
+
+    quizCompleted.value = true
+    quizPassed.value = result.passed
+    finalScore.value = result.percentage
+    correctAnswers.value = result.answers.filter(answer => answer.is_correct).length
+    quizAnswers.value = result.answers
+    attemptNumber.value = result.attempt_number || 1
+
+    emit('quiz-completed', {
+      lesson: props.lesson,
+      result: result
+    })
+
+  } catch (error) {
+    console.error('Errore nel submit del quiz:', error)
+  }
+}
+
+const retryQuiz = async () => {
+  try {
+    // Reset frontend state
+    quizCompleted.value = false
+    quizPassed.value = false
+    answers.value = new Array(totalQuestions.value).fill(null)
+    currentQuestionIndex.value = 0
+    timeRemaining.value = timeLimit.value
+    showDetailedResults.value = false
+    
+    // Start a new quiz attempt (il backend gestisce il numero del tentativo)
+    await startQuizAttempt()
+  } catch (error) {
+    console.error('Errore nel riavvio del quiz:', error)
+  }
+}
+
+const proceedToNext = () => {
+  if (props.isLastLesson) {
+    // Se è l'ultima lezione, emetti evento di completamento corso
+    emit('course-completed')
+  } else {
+    // Altrimenti procedi alla prossima lezione
+    emit('next-lesson')
+  }
+}
+
+const reviewAnswers = () => {
+  showDetailedResults.value = !showDetailedResults.value
+}
+
+const isAnswerCorrect = (questionIndex) => {
+  const answer = quizAnswers.value[questionIndex]
+  return answer ? answer.is_correct : false
+}
+
+const formatUserAnswer = (questionIndex) => {
+  const answer = quizAnswers.value[questionIndex]
+  return answer ? answer.answer : 'Nessuna risposta'
+}
+
+const formatCorrectAnswer = (questionIndex) => {
+  const question = quizData.value.questions[questionIndex]
+  const correctAnswer = question.correct_answer
+
+  // Handle JSON string format
+  let parsedAnswer = correctAnswer
+  if (typeof correctAnswer === 'string' && (correctAnswer.startsWith('[') || correctAnswer.startsWith('"'))) {
+    parsedAnswer = JSON.parse(correctAnswer)
+  }
+
+  if (question.type === 'single_choice' || question.type === 'true_false') {
+    const index = Array.isArray(parsedAnswer) ? parsedAnswer[0] : parsedAnswer
+    return question.options[index] || 'N/A'
+  } else if (question.type === 'multiple_choice') {
+    const indices = Array.isArray(parsedAnswer) ? parsedAnswer : [parsedAnswer]
+    return indices.map(index => question.options[index]).join(', ') || 'N/A'
+  } else {
+    return parsedAnswer || 'N/A'
+  }
+}
+
+// Lifecycle
+onMounted(() => {
+  initializeQuiz()
+})
+
+onUnmounted(() => {
+  if (timerInterval.value) {
+    clearInterval(timerInterval.value)
+  }
+})
+</script>
+
+<style scoped>
+.quiz-player-container {
+  @apply w-full max-w-4xl mx-auto;
+}
+
+/* Custom radio button styling */
+input[type="radio"]:checked + div {
+  @apply border-cdf-teal bg-cdf-teal/10;
+}
+
+/* Custom checkbox styling */
+input[type="checkbox"]:checked + div {
+  @apply border-cdf-teal bg-cdf-teal;
+}
+
+/* Animation for progress bar */
+.progress-bar {
+  transition: width 0.5s ease-in-out;
+}
+
+/* Hover effects for interactive elements */
+.interactive:hover {
+  @apply transform scale-105 transition-transform duration-200;
+}
+</style>

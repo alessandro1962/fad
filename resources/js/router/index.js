@@ -163,8 +163,17 @@ const router = createRouter({
 });
 
 // Navigation guards
-router.beforeEach((to, from, next) => {
+router.beforeEach(async (to, from, next) => {
     const authStore = useAuthStore();
+    
+    // If we have a token but no user, try to fetch the user first
+    if (authStore.token && !authStore.user) {
+        try {
+            await authStore.fetchUser();
+        } catch (error) {
+            console.error('Failed to fetch user:', error);
+        }
+    }
     
     if (to.meta.requiresAuth && !authStore.isAuthenticated) {
         next('/login');
