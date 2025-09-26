@@ -8,6 +8,7 @@
 import { onMounted } from 'vue';
 import { useAuthStore } from '@/stores/auth';
 import { useRouter } from 'vue-router';
+import axios from 'axios';
 
 const authStore = useAuthStore();
 const router = useRouter();
@@ -24,6 +25,9 @@ onMounted(async () => {
         authStore.token = oauthToken;
         localStorage.setItem('token', oauthToken);
         
+        // Set axios header immediately
+        axios.defaults.headers.common['Authorization'] = `Bearer ${oauthToken}`;
+        
         // Clean URL by removing token parameter first
         const newUrl = window.location.pathname;
         window.history.replaceState({}, document.title, newUrl);
@@ -32,6 +36,11 @@ onMounted(async () => {
         try {
             await authStore.fetchUser();
             console.log('User fetched successfully');
+            
+            // Force redirect to dashboard after successful login
+            if (authStore.user) {
+                router.push('/dashboard');
+            }
         } catch (error) {
             console.error('Error fetching user:', error);
         }
