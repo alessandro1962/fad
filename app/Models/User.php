@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
@@ -38,6 +39,8 @@ class User extends Authenticatable
         'email_verified_at',
         'is_admin',
         'is_company_manager',
+        'is_reseller',
+        'created_by_reseller_id',
     ];
 
     /**
@@ -218,10 +221,50 @@ class User extends Authenticatable
     }
 
     /**
+     * Check if user is reseller.
+     */
+    public function isReseller(): bool
+    {
+        return $this->is_reseller === true;
+    }
+
+    /**
+     * Get the reseller profile for this user.
+     */
+    public function reseller(): HasOne
+    {
+        return $this->hasOne(Reseller::class);
+    }
+
+    /**
+     * Get the reseller who created this user.
+     */
+    public function createdByReseller(): BelongsTo
+    {
+        return $this->belongsTo(Reseller::class, 'created_by_reseller_id');
+    }
+
+    /**
+     * Get the reseller client record for this user.
+     */
+    public function resellerClient(): HasOne
+    {
+        return $this->hasOne(ResellerClient::class);
+    }
+
+    /**
      * Scope a query to only include admin users.
      */
     public function scopeAdmin($query)
     {
         return $query->where('is_admin', true);
+    }
+
+    /**
+     * Scope a query to only include reseller users.
+     */
+    public function scopeReseller($query)
+    {
+        return $query->where('is_reseller', true);
     }
 }

@@ -119,6 +119,11 @@ Route::prefix('v1')->group(function () {
             // Dashboard statistics
             Route::get('dashboard/statistics', [App\Http\Controllers\Admin\DashboardController::class, 'statistics']);
             
+            // Reseller management
+            Route::apiResource('resellers', App\Http\Controllers\Admin\ResellerController::class);
+            Route::post('resellers/{reseller}/assign-tokens', [App\Http\Controllers\Admin\ResellerController::class, 'assignTokens']);
+            Route::get('resellers/statistics', [App\Http\Controllers\Admin\ResellerController::class, 'statistics']);
+            
             // Import users for OAuth
             Route::post('import/google-users', [App\Http\Controllers\Admin\ImportUsersController::class, 'importGoogleUsers']);
             Route::get('import/google-users/template', [App\Http\Controllers\Admin\ImportUsersController::class, 'getTemplate']);
@@ -170,6 +175,32 @@ Route::prefix('v1')->group(function () {
             
             // Courses assigned to company
             Route::get('courses', [App\Http\Controllers\Company\CompanyDashboardController::class, 'courses']);
+        });
+
+        // Reseller routes (protected)
+        Route::prefix('reseller')->middleware('auth:sanctum')->group(function () {
+            // Dashboard
+            Route::get('dashboard', [App\Http\Controllers\Reseller\ResellerDashboardController::class, 'dashboard']);
+            Route::get('statistics', [App\Http\Controllers\Reseller\ResellerDashboardController::class, 'statistics']);
+            
+            // Client management
+            Route::get('clients', [App\Http\Controllers\Reseller\ResellerDashboardController::class, 'clients']);
+            Route::post('clients/standalone', [App\Http\Controllers\Reseller\ResellerDashboardController::class, 'createStandaloneUser']);
+            Route::post('clients/organization', [App\Http\Controllers\Reseller\ResellerDashboardController::class, 'createOrganization']);
+            Route::post('clients/organization/user', [App\Http\Controllers\Reseller\ResellerDashboardController::class, 'addUserToOrganization']);
+            
+            // Separate sections
+            Route::get('standalone-users', [App\Http\Controllers\Reseller\ResellerDashboardController::class, 'getStandaloneUsers']);
+            Route::get('organizations', [App\Http\Controllers\Reseller\ResellerDashboardController::class, 'getOrganizations']);
+            Route::get('company-managers', [App\Http\Controllers\Reseller\ResellerDashboardController::class, 'getCompanyManagers']);
+            
+            // Update operations
+            Route::put('standalone-users/{userId}', [App\Http\Controllers\Reseller\ResellerDashboardController::class, 'updateStandaloneUser']);
+            Route::put('organizations/{organizationId}', [App\Http\Controllers\Reseller\ResellerDashboardController::class, 'updateOrganization']);
+            Route::put('company-managers/{managerId}', [App\Http\Controllers\Reseller\ResellerDashboardController::class, 'updateCompanyManager']);
+            
+            // Assign user to organization
+            Route::post('assign-user-to-organization', [App\Http\Controllers\Reseller\ResellerDashboardController::class, 'assignUserToOrganization']);
         });
     });
     

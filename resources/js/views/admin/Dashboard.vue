@@ -120,6 +120,12 @@
                             Gestisci Aziende
                         </router-link>
                         <router-link 
+                            to="/admin/resellers"
+                            class="w-full btn-secondary block text-center"
+                        >
+                            Gestisci Rivenditori
+                        </router-link>
+                        <router-link 
                             to="/admin/analytics"
                             class="w-full btn-secondary block text-center"
                         >

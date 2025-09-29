@@ -13,6 +13,7 @@ class Organization extends Model
         'sso_type',
         'sso_metadata',
         'is_active',
+        'created_by_reseller_id',
     ];
 
     protected $casts = [

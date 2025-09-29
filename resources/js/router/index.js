@@ -142,6 +142,12 @@ const routes = [
         component: () => import('@/views/admin/Organizations.vue'),
         meta: { requiresAuth: true, requiresAdmin: true }
     },
+    {
+        path: '/admin/resellers',
+        name: 'admin-resellers',
+        component: () => import('@/views/admin/Resellers.vue'),
+        meta: { requiresAuth: true, requiresAdmin: true }
+    },
     // Company routes
     {
         path: '/company/dashboard',
@@ -154,6 +160,19 @@ const routes = [
         name: 'company-employee-details',
         component: () => import('@/views/company/EmployeeDetails.vue'),
         meta: { requiresAuth: true, requiresCompanyManager: true }
+    },
+    // Reseller routes
+    {
+        path: '/reseller/dashboard',
+        name: 'reseller-dashboard',
+        component: () => import('@/views/reseller/Dashboard.vue'),
+        meta: { requiresAuth: true, requiresReseller: true }
+    },
+    {
+        path: '/reseller/clients',
+        name: 'reseller-clients',
+        component: () => import('@/views/reseller/Clients.vue'),
+        meta: { requiresAuth: true, requiresReseller: true }
     },
 ];
 
@@ -181,6 +200,8 @@ router.beforeEach(async (to, from, next) => {
         // Redirect based on user role
         if (authStore.isAdmin) {
             next('/admin');
+        } else if (authStore.isReseller) {
+            next('/reseller/dashboard');
         } else if (authStore.isCompanyManager) {
             next('/company/dashboard');
         } else {
@@ -190,6 +211,19 @@ router.beforeEach(async (to, from, next) => {
         next('/dashboard');
     } else if (to.meta.requiresCompanyManager && !authStore.isCompanyManager) {
         next('/dashboard');
+    } else if (to.meta.requiresReseller && !authStore.isReseller) {
+        next('/dashboard');
+    } else if (to.path === '/dashboard' && authStore.isAuthenticated) {
+        // Redirect to appropriate dashboard based on user role
+        if (authStore.isAdmin) {
+            next('/admin');
+        } else if (authStore.isReseller) {
+            next('/reseller/dashboard');
+        } else if (authStore.isCompanyManager) {
+            next('/company/dashboard');
+        } else {
+            next();
+        }
     } else {
         next();
     }

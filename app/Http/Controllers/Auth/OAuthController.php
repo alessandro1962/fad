@@ -57,8 +57,16 @@ class OAuthController extends Controller
                 $token = $user->createToken('oauth-token')->plainTextToken;
                 \Log::info('Sanctum token generated for user: ' . $user->email . ' (ID: ' . $user->id . ')');
                 
-                // Redirect to dashboard with token parameter
-                $redirectUrl = $user->is_admin ? '/admin' : '/dashboard';
+                // Redirect to dashboard with token parameter based on user role
+                if ($user->is_admin) {
+                    $redirectUrl = '/admin';
+                } elseif ($user->is_reseller) {
+                    $redirectUrl = '/reseller/dashboard';
+                } elseif ($user->is_company_manager) {
+                    $redirectUrl = '/company/dashboard';
+                } else {
+                    $redirectUrl = '/dashboard';
+                }
                 $redirectUrl .= '?token=' . $token;
                 \Log::info('Redirecting to: ' . $redirectUrl);
                 
@@ -163,6 +171,8 @@ class OAuthController extends Controller
                         'name' => $user->name,
                         'email' => $user->email,
                         'is_admin' => $user->is_admin,
+                        'is_reseller' => $user->is_reseller,
+                        'is_company_manager' => $user->is_company_manager,
                         'provider' => $user->provider,
                         'provider_id' => $user->provider_id,
                     ],
