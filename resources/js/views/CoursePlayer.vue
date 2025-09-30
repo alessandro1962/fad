@@ -528,6 +528,7 @@ const loadCourse = async () => {
 
 const loadUserProgress = async () => {
   try {
+    console.log('🚀 DEBUG: loadUserProgress called for course:', courseId)
     console.log('📥 LOADING USER PROGRESS for course:', courseId)
     const response = await api.get(`/v1/progress/course/${courseId}`)
     console.log('📥 Progress API response:', response.data)
@@ -544,26 +545,26 @@ const loadUserProgress = async () => {
         progress_percentage: progressData.course_progress_percentage
       })
       
-      // If course is 100% completed, mark all lessons as completed
-      if (progressData.course_progress_percentage === 100) {
-        console.log('🎓 Course is 100% completed, marking all lessons as completed')
-        course.value.modules.forEach(module => {
-          if (module.lessons) {
-            module.lessons.forEach(lesson => {
-              lesson.completed = true
-              lessonProgress.value[lesson.id] = {
-                completed: true,
-                completed_at: new Date().toISOString(),
-                seconds_watched: lesson.type === 'video' ? 100 : 0,
-                last_position_sec: lesson.type === 'video' ? 100 : 0,
-                watched_time: lesson.type === 'video' ? 100 : 0,
-                total_duration: lesson.type === 'video' ? 100 : 0
-              }
-              console.log(`Marked lesson ${lesson.id} (${lesson.title}) as completed`)
-            })
+      // Process individual lesson progress from the API response
+      if (progressData.lessons && Array.isArray(progressData.lessons)) {
+        console.log('📚 Processing individual lesson progress:', progressData.lessons.length, 'lessons')
+        progressData.lessons.forEach(lessonProgressItem => {
+          lessonProgress.value[lessonProgressItem.lesson_id] = {
+            completed: lessonProgressItem.completed,
+            completed_at: lessonProgressItem.completed ? new Date().toISOString() : null,
+            seconds_watched: lessonProgressItem.seconds_watched || 0,
+            last_position_sec: lessonProgressItem.seconds_watched || 0,
+            watched_time: lessonProgressItem.seconds_watched || 0,
+            total_duration: lessonProgressItem.duration_minutes * 60 || 0,
+            progress_percentage: lessonProgressItem.progress_percentage || 0
           }
+          console.log(`Set progress for lesson ${lessonProgressItem.lesson_id} (${lessonProgressItem.lesson_title}): completed=${lessonProgressItem.completed}`)
         })
-        // Mark course as completed
+      }
+      
+      // If course is 100% completed, mark course as completed
+      if (progressData.course_progress_percentage === 100) {
+        console.log('🎓 Course is 100% completed')
         courseCompleted.value = true
       }
     } else {
