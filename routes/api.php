@@ -9,6 +9,7 @@ use App\Http\Controllers\Api\V1\GamificationController;
 use App\Http\Controllers\Api\V1\NotificationController;
 use App\Http\Controllers\Api\V1\ProgressController;
 use App\Http\Controllers\Api\V1\QuizController;
+use App\Http\Controllers\Api\V1\WebhookController;
 use App\Http\Controllers\Admin\CourseController as AdminCourseController;
 use App\Http\Controllers\Admin\AnalyticsController;
 use App\Http\Controllers\Admin\EnrollmentController as AdminEnrollmentController;
@@ -32,6 +33,9 @@ Route::prefix('v1')->group(function () {
     // Public certificate routes
     Route::get('/certificates/public/{publicUid}', [CertificateController::class, 'public']);
     Route::get('/certificates/public/{publicUid}/download', [CertificateController::class, 'publicDownload']);
+    
+    // Webhook routes (no authentication required)
+    Route::post('/webhooks/woocommerce/order', [WebhookController::class, 'handleOrder']);
     
     // Protected routes
     Route::middleware('auth:sanctum')->group(function () {

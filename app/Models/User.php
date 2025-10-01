@@ -37,6 +37,7 @@ class User extends Authenticatable
         'privacy_consent',
         'last_login_at',
         'email_verified_at',
+        'source',
         'is_admin',
         'is_company_manager',
         'is_reseller',

@@ -12,6 +12,7 @@ class Order extends Model
         'user_id',
         'organization_id',
         'order_number',
+        'woocommerce_order_id',
         'total_cents',
         'currency',
         'status',
@@ -20,6 +21,7 @@ class Order extends Model
         'gateway_response',
         'paid_at',
         'metadata',
+        'meta_data',
     ];
 
     protected $casts = [
@@ -27,6 +29,7 @@ class Order extends Model
         'paid_at' => 'datetime',
         'gateway_response' => 'array',
         'metadata' => 'array',
+        'meta_data' => 'array',
     ];
 
     /**
