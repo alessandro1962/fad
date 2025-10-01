@@ -5,14 +5,46 @@
       <div class="aspect-video relative">
         <!-- Slide Content -->
         <div v-if="currentSlide" class="w-full h-full flex items-center justify-center bg-white">
-          <div class="max-w-4xl mx-auto p-8">
+          <div class="max-w-4xl mx-auto p-8 text-center">
             <h2 class="text-2xl font-bold text-cdf-deep mb-4">{{ currentSlide.title }}</h2>
-            <div class="prose prose-lg max-w-none" v-html="currentSlide.content"></div>
+            
+            <!-- PDF File Display -->
+            <div v-if="currentSlide.file_path" class="space-y-6">
+              <div class="w-24 h-24 mx-auto bg-red-100 rounded-full flex items-center justify-center">
+                <svg class="w-12 h-12 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path>
+                </svg>
+              </div>
+              <div class="prose prose-lg max-w-none" v-html="currentSlide.content"></div>
+              <div class="space-y-3">
+                <button
+                  @click="openPdf"
+                  class="px-6 py-3 bg-red-600 text-white rounded-lg font-semibold hover:bg-red-700 transition-colors"
+                >
+                  <svg class="w-5 h-5 mr-2 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path>
+                  </svg>
+                  Apri PDF in Nuova Finestra
+                </button>
+                <button
+                  @click="downloadPdf"
+                  class="px-6 py-3 bg-cdf-teal text-white rounded-lg font-semibold hover:bg-cdf-deep transition-colors ml-3"
+                >
+                  <svg class="w-5 h-5 mr-2 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                  </svg>
+                  Scarica PDF
+                </button>
+              </div>
+            </div>
+            
+            <!-- Standard Slide Content -->
+            <div v-else class="prose prose-lg max-w-none" v-html="currentSlide.content"></div>
           </div>
         </div>
         
-        <!-- Navigation Overlay -->
-        <div class="absolute inset-0 flex items-center justify-between p-4 pointer-events-none">
+        <!-- Navigation Overlay (only for multi-slide presentations) -->
+        <div v-if="!lesson.payload?.file_path" class="absolute inset-0 flex items-center justify-between p-4 pointer-events-none">
           <button
             @click="previousSlide"
             :disabled="currentSlideIndex === 0"
@@ -33,8 +65,8 @@
           </button>
         </div>
         
-        <!-- Slide Counter -->
-        <div class="absolute bottom-4 left-1/2 transform -translate-x-1/2 pointer-events-none">
+        <!-- Slide Counter (only for multi-slide presentations) -->
+        <div v-if="!lesson.payload?.file_path" class="absolute bottom-4 left-1/2 transform -translate-x-1/2 pointer-events-none">
           <div class="bg-black/50 text-white px-3 py-1 rounded-full text-sm">
             {{ currentSlideIndex + 1 }} / {{ slides.length }}
           </div>
@@ -42,8 +74,8 @@
       </div>
     </div>
 
-    <!-- Slide Navigation -->
-    <div class="bg-white rounded-xl border border-cdf-slate200 p-4 mb-6">
+    <!-- Slide Navigation (only for multi-slide presentations) -->
+    <div v-if="!lesson.payload?.file_path" class="bg-white rounded-xl border border-cdf-slate200 p-4 mb-6">
       <div class="flex items-center justify-between mb-4">
         <h3 class="text-lg font-semibold text-cdf-deep">Navigazione Slide</h3>
         <span class="text-sm text-cdf-slate600">
@@ -84,7 +116,7 @@
             </svg>
           </div>
           <span class="text-cdf-slate700">
-            {{ isCompleted ? 'Lezione completata' : 'Visualizza tutte le slide per completare la lezione' }}
+            {{ isCompleted ? 'Lezione completata' : (lesson.payload?.file_path ? 'Visualizza o scarica il PDF per completare la lezione' : 'Visualizza tutte le slide per completare la lezione') }}
           </span>
         </div>
         <button
@@ -107,7 +139,7 @@
         disabled
         class="flex-1 bg-gray-300 text-gray-500 px-4 py-2 rounded-lg font-semibold cursor-not-allowed"
       >
-        Visualizza tutte le slide per continuare
+        {{ lesson.payload?.file_path ? 'Visualizza il PDF per continuare' : 'Visualizza tutte le slide per continuare' }}
       </button>
       <button
         v-else
@@ -148,6 +180,17 @@ const viewedSlides = ref(new Set())
 
 // Computed
 const slides = computed(() => {
+  // Check if it's a PDF file-based slide lesson
+  if (props.lesson.payload?.file_path) {
+    return [{
+      title: props.lesson.title,
+      content: `<p>Questa lezione contiene una presentazione PDF.</p><p>File: ${props.lesson.payload.file_name || 'Presentazione'}</p>`,
+      file_path: props.lesson.payload.file_path,
+      file_name: props.lesson.payload.file_name
+    }]
+  }
+  
+  // Standard slides array
   return props.lesson.payload?.slides || []
 })
 
@@ -156,6 +199,12 @@ const currentSlide = computed(() => {
 })
 
 const canComplete = computed(() => {
+  // For PDF-based slides, allow completion immediately
+  if (props.lesson.payload?.file_path) {
+    return true
+  }
+  
+  // For standard slides, require all slides to be viewed
   return viewedSlides.value.size === slides.value.length && slides.value.length > 0
 })
 
@@ -220,6 +269,25 @@ const proceedToNext = () => {
     completed: true,
     completed_at: new Date().toISOString()
   })
+}
+
+const openPdf = () => {
+  if (currentSlide.value?.file_path) {
+    const pdfUrl = `/storage/${currentSlide.value.file_path}`
+    window.open(pdfUrl, '_blank')
+  }
+}
+
+const downloadPdf = () => {
+  if (currentSlide.value?.file_path) {
+    const pdfUrl = `/storage/${currentSlide.value.file_path}`
+    const link = document.createElement('a')
+    link.href = pdfUrl
+    link.download = currentSlide.value.file_name || 'presentazione.pdf'
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+  }
 }
 
 // Watch for slide changes
