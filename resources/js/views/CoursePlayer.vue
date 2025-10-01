@@ -379,6 +379,7 @@ const openModule = (moduleIndex) => {
 
 const startLesson = (lesson, lessonIndex) => {
   console.log('🚀 startLesson called:', { lesson: lesson.title, lessonIndex, lessonId: lesson.id })
+  console.log('📋 Full lesson object:', lesson)
   
   // If course is completed, allow free navigation
   if (courseCompleted.value) {
@@ -392,6 +393,7 @@ const startLesson = (lesson, lessonIndex) => {
   console.log('📚 Setting current lesson:', lesson.title)
   currentLessonIndex.value = lessonIndex
   currentLesson.value = lesson
+  console.log('📋 Current lesson after setting:', currentLesson.value)
 }
 
 const markLessonCompleted = () => {

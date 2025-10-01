@@ -240,6 +240,10 @@ const markSlideAsViewed = (index) => {
 
 const markAsCompleted = async () => {
   try {
+    console.log('🎯 SlideLesson markAsCompleted called')
+    console.log('📋 Lesson object:', props.lesson)
+    console.log('🆔 Lesson ID:', props.lesson.id)
+    
     isCompleted.value = true
     
     // Save progress
@@ -249,6 +253,7 @@ const markAsCompleted = async () => {
       slides_viewed: Array.from(viewedSlides.value)
     }
 
+    console.log('💾 Saving progress for lesson ID:', props.lesson.id)
     await api.patch(`/v1/progress/lesson/${props.lesson.id}`, progressData)
     
     emit('progress-updated', {
