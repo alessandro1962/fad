@@ -234,32 +234,6 @@
           </div>
         </div>
 
-        <!-- Leaderboard -->
-        <div class="bg-white rounded-2xl shadow-sm border border-cdf-slate200 p-6">
-          <h3 class="font-bold text-cdf-deep mb-4">Classifica</h3>
-          <div class="space-y-3">
-            <div
-              v-for="(user, index) in leaderboard"
-              :key="user.id"
-              class="flex items-center space-x-3 p-2 rounded-lg"
-              :class="user.isCurrentUser ? 'bg-cdf-teal/10 border border-cdf-teal/20' : ''"
-            >
-              <div class="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold"
-                   :class="index === 0 ? 'bg-yellow-100 text-yellow-800' :
-                          index === 1 ? 'bg-gray-100 text-gray-800' :
-                          index === 2 ? 'bg-amber-100 text-amber-800' :
-                          'bg-cdf-slate200 text-cdf-slate700'">
-                {{ index + 1 }}
-              </div>
-              <div class="flex-1">
-                <div class="font-semibold text-cdf-deep text-sm">
-                  {{ user.isCurrentUser ? 'Tu' : user.name }}
-                </div>
-                <div class="text-xs text-cdf-slate700">{{ user.points }} punti</div>
-              </div>
-            </div>
-          </div>
-        </div>
       </div>
     </div>
   </AppLayout>
@@ -296,7 +270,6 @@ const userLevel = ref({
 
 const recentBadges = ref([])
 const upcomingAchievements = ref([])
-const leaderboard = ref([])
 const streakCalendar = ref([])
 
 // Computed
@@ -366,14 +339,6 @@ const loadUpcomingAchievements = async () => {
   }
 }
 
-const loadLeaderboard = async () => {
-  try {
-    const response = await api.get('/v1/gamification/leaderboard')
-    leaderboard.value = response.data.data
-  } catch (error) {
-    console.error('Errore nel caricamento classifica:', error)
-  }
-}
 
 const generateStreakCalendar = () => {
   const calendar = []
@@ -404,7 +369,6 @@ onMounted(() => {
   loadUserStats()
   loadRecentBadges()
   loadUpcomingAchievements()
-  loadLeaderboard()
   generateStreakCalendar()
 })
 </script>

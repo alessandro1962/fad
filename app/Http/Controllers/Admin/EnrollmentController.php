@@ -82,11 +82,11 @@ class EnrollmentController extends Controller
             // If this is the Full Vision course (ID: 11), auto-enroll user in all other courses
             if ($course->id == 11) {
                 $this->autoEnrollInAllCourses($user, $validated);
-            }
-
-            // Send notification if requested
-            if ($validated['send_notification'] ?? true) {
-                $user->notify(new CourseEnrollmentNotification($course, $enrollment));
+            } else {
+                // Send notification if requested (only for individual courses, not Full Vision)
+                if ($validated['send_notification'] ?? true) {
+                    $user->notify(new CourseEnrollmentNotification($course, $enrollment));
+                }
             }
 
             DB::commit();
@@ -225,12 +225,12 @@ class EnrollmentController extends Controller
                     if ($course->id == 11) {
                         $user = User::find($userId);
                         $this->autoEnrollInAllCourses($user, $validated);
-                    }
-
-                    // Send notification if requested
-                    if ($validated['send_notification'] ?? true) {
-                        $user = User::find($userId);
-                        $user->notify(new CourseEnrollmentNotification($course, $enrollment));
+                    } else {
+                        // Send notification if requested (only for individual courses, not Full Vision)
+                        if ($validated['send_notification'] ?? true) {
+                            $user = User::find($userId);
+                            $user->notify(new CourseEnrollmentNotification($course, $enrollment));
+                        }
                     }
 
                     $enrolledCount++;
