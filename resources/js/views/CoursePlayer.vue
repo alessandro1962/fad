@@ -314,6 +314,21 @@ const overallProgress = computed(() => {
   return totalLessons > 0 ? (completedLessons / totalLessons) * 100 : 0
 })
 
+const isLastLesson = computed(() => {
+  if (!currentLesson.value || !course.value.modules) return false
+  
+  const currentModule = course.value.modules[currentModuleIndex.value]
+  if (!currentModule || !currentModule.lessons) return false
+  
+  // Check if this is the last lesson in the current module
+  const isLastInModule = currentLessonIndex.value === currentModule.lessons.length - 1
+  
+  // Check if this is the last module
+  const isLastModule = currentModuleIndex.value === course.value.modules.length - 1
+  
+  return isLastInModule && isLastModule
+})
+
 // Methods
 const cleanDescription = (html) => {
   if (!html) return ''

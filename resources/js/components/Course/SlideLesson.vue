@@ -246,14 +246,14 @@ const markAsCompleted = async () => {
     
     isCompleted.value = true
     
-    // Save progress
+    // Save progress - only send valid fields accepted by API
     const progressData = {
-      completed: true,
-      completed_at: new Date().toISOString(),
-      slides_viewed: Array.from(viewedSlides.value)
+      seconds_watched: 0, // Required field for slide lessons
+      completed: true
     }
 
     console.log('💾 Saving progress for lesson ID:', props.lesson.id)
+    console.log('📊 Progress data:', progressData)
     await api.patch(`/v1/progress/lesson/${props.lesson.id}`, progressData)
     
     emit('progress-updated', {
@@ -269,6 +269,10 @@ const markAsCompleted = async () => {
 }
 
 const proceedToNext = () => {
+  console.log('🚀 proceedToNext called')
+  console.log('📋 Lesson object in proceedToNext:', props.lesson)
+  console.log('🆔 Lesson ID in proceedToNext:', props.lesson.id)
+  
   emit('lesson-completed', {
     lesson: props.lesson,
     completed: true,
