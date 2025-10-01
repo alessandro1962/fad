@@ -161,7 +161,7 @@
                         <i class="fas fa-check-circle mr-1"></i>Completato
                       </span>
                       <button 
-                        v-else-if="currentLessonIndex === lessonIndex"
+                        v-else
                         class="px-4 py-2 bg-cdf-teal text-white rounded-lg hover:bg-cdf-deep transition-colors"
                         @click="startLesson(lesson, lessonIndex)"
                       >
@@ -366,14 +366,18 @@ const openModule = (moduleIndex) => {
 }
 
 const startLesson = (lesson, lessonIndex) => {
+  console.log('🚀 startLesson called:', { lesson: lesson.title, lessonIndex, lessonId: lesson.id })
+  
   // If course is completed, allow free navigation
   if (courseCompleted.value) {
+    console.log('✅ Course completed, allowing free navigation')
     currentLessonIndex.value = lessonIndex
     currentLesson.value = lesson
     return
   }
   
   // Normal sequential navigation
+  console.log('📚 Setting current lesson:', lesson.title)
   currentLessonIndex.value = lessonIndex
   currentLesson.value = lesson
 }
