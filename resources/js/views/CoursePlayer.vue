@@ -203,6 +203,17 @@
                       </button>
                     </div>
                     
+                    <!-- Slide Lesson -->
+                    <SlideLesson
+                      v-else-if="currentLesson.type === 'slide'"
+                      :lesson="currentLesson"
+                      :user-progress="getLessonProgress(currentLesson.id)"
+                      :is-last-lesson="isLastLesson"
+                      @lesson-completed="onLessonCompleted"
+                      @progress-updated="onProgressUpdated"
+                      @error="onError"
+                    />
+                    
                     <!-- Audio Lesson -->
                     <div v-else-if="currentLesson.type === 'audio'" class="text-center py-8">
                       <i class="fas fa-volume-up text-6xl text-cdf-teal mb-4"></i>
@@ -231,6 +242,7 @@ import { useRoute, useRouter } from 'vue-router'
 import AppLayout from '@/components/Layout/AppLayout.vue'
 import VideoPlayer from '@/components/Course/VideoPlayer.vue'
 import QuizPlayer from '@/components/Course/QuizPlayer.vue'
+import SlideLesson from '@/components/Course/SlideLesson.vue'
 import CompletionModal from '@/components/Course/CompletionModal.vue'
 import api from '@/api'
 
@@ -463,6 +475,22 @@ const onQuizCompleted = async (result) => {
     console.log('⏭️ Advancing to next lesson...')
     advanceToNextLesson()
   }, 1500)
+}
+
+const onProgressUpdated = (data) => {
+  console.log('📊 Progress updated:', data)
+  
+  if (data.lesson_id) {
+    lessonProgress.value[data.lesson_id] = {
+      ...lessonProgress.value[data.lesson_id],
+      ...data
+    }
+  }
+}
+
+const onError = (error) => {
+  console.error('❌ Error in lesson component:', error)
+  // You can add error handling UI here if needed
 }
 
 const advanceToNextLesson = () => {
